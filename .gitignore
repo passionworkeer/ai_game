@@ -1,0 +1,32 @@
+# GGUF 模型文件（太大，不进仓库）
+*.gguf
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/app/debug/
+android/.idea/
+android/*.iml
+android/local.properties
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/*.log
+
+# Python（模型转换用）
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# 临时文件
+*.tmp
+*.bak
