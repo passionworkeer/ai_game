@@ -1,0 +1,78 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String    @id @default(uuid())
+  /// 脱敏设备标识：客户端生成 UUID v4，不使用真实 IMEI/GAID
+  deviceId   String    @unique
+  /// 昵称（来自客户端同步）
+  nickname   String    @default("宝宝")
+  /// 云端备份的结构化 profile（JSON）
+  /// 仅包含：likes/dislikes/currentMood/importantDates，不含聊天原文
+  profileJson String   @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  purchases Purchase[]
+
+  @@map("users")
+}
+
+model Character {
+  id           String   @id @default(uuid())
+  /// 角色代码，对应资源目录名，如 "gu_chen"
+  code         String   @unique
+  /// 显示名称，如 "顾晨"
+  name         String
+  /// 角色描述（展示用）
+  description  String
+  /// 价格（单位：分，5800 = 58元）
+  price        Int
+  /// 预览图 URL
+  previewUrl   String?
+  /// 角色资源下载地址（GGUF 模型，不加密 Phase 1）
+  assetsUrl    String
+  /// 角色人设 Prompt（System Prompt 全文）
+  systemPrompt String
+  /// 是否上线
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  purchases Purchase[]
+
+  @@map("characters")
+}
+
+/// Phase 1：只记录状态，不下发 AES 密钥
+/// Phase 2：才接入 AES-256 密钥下发
+model Purchase {
+  id              String    @id @default(uuid())
+  userId          String
+  characterId     String
+  /// 支付渠道：wechat | alipay | apple
+  channel         String
+  /// 渠道订单号
+  channelOrderId  String?
+  /// 支付金额（分）
+  amount          Int
+  /// 支付状态：pending | completed | refunded
+  status          String    @default("pending")
+  paidAt          DateTime?
+  /// Phase 2 才填值
+  encryptedAesKey String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@unique([userId, characterId])
+  @@map("purchases")
+}
