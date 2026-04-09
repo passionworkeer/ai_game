@@ -1,5 +1,10 @@
+# 源模型文件（safetensors，Phase 1 用 GGUF）
+*.safetensors
+gemma-4-E4B-it-UD-MLX-4bit-main/**/tokenizer.json
+
 # GGUF 模型文件（太大，不进仓库）
 *.gguf
+
 
 # Android
 android/.gradle/
