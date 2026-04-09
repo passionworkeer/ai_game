@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { SyncService } from './sync.service';
 import { SyncProfileDto } from './dto/sync-profile.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -21,6 +21,7 @@ export class SyncController {
 
   @Post(':userId')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async updateProfile(
     @Param('userId') userId: string,
     @Body() dto: SyncProfileDto,

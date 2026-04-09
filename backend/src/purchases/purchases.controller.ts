@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { PurchasesService } from './purchases.service';
 import { VerifyPurchaseDto } from './dto/verify-purchase.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -11,6 +11,7 @@ export class PurchasesController {
 
   @Post('verify')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async verifyPurchase(
     @Body() dto: VerifyPurchaseDto,
     @CurrentUser() user: CurrentUserPayload,

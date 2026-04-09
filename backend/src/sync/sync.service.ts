@@ -90,18 +90,22 @@ export class SyncService {
       });
     }
 
+    // No-op: neither nickname nor profileJson provided
+    const hasNickname = dto.nickname !== undefined && dto.nickname !== null && dto.nickname !== '';
+    const hasProfileJson = dto.profileJson !== undefined && dto.profileJson !== null;
+
+    if (!hasNickname && !hasProfileJson) {
+      return { updatedAt: user.updatedAt.getTime() };
+    }
+
     const data: { nickname?: string; profileJson?: string } = {};
 
-    if (dto.nickname !== undefined) {
+    if (hasNickname) {
       data.nickname = dto.nickname;
     }
 
-    if (dto.profileJson !== undefined) {
+    if (hasProfileJson) {
       data.profileJson = JSON.stringify(dto.profileJson);
-    }
-
-    if (Object.keys(data).length === 0) {
-      return { updatedAt: user.updatedAt.getTime() };
     }
 
     const updated = await this.prisma.user.update({
