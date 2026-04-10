@@ -21,6 +21,8 @@ backend/node_modules/
 backend/dist/
 backend/.env
 backend/*.log
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
 
 # Python（模型转换用）
 __pycache__/
