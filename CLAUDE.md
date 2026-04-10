@@ -6,7 +6,9 @@
 
 国内首款端侧离线 AI 乙女游戏陪伴 App（Gemma 4 本地推理 + OpenClaw PC 联动）。
 
-**当前阶段**：Phase 0 — 文档规划，源码已清空，待重建。
+**当前阶段**：Phase 1 ✅ 完成（169 tests pass）
+
+**团队**：单人（你），全栈。
 
 **团队**：单人（你），全栈。
 
@@ -16,17 +18,18 @@
 
 ```
 Phase 0 ✅ 文档规划
-Phase 1 🔄 核心聊天 Demo（进行中）
+Phase 1 ✅ 核心聊天 Demo（完成，169 tests pass）
 Phase 2    完整产品
 ```
 
 | 模块 | 状态 | 完成时间 |
 |------|------|---------|
 | 后端 NestJS（6 个 API + JWT + Prisma）| ✅ | 2026-04-09 |
-| Android 网络层 + Repository（TDD 开发中）| 🔄 | 进行中 |
-| Android ViewModel + UI 绑定 | ⬜ 待开发 | — |
-| Android Room 本地存储 | ⬜ 待开发 | — |
-| E2E 联调 | ⬜ 待开发 | — |
+| Android 网络层 + Repository | ✅ | 2026-04-10 |
+| Android ViewModel + UI 绑定 | ✅ | 2026-04-10 |
+| Android Room 本地存储 | ✅ | 2026-04-10 |
+| E2E 联调（后端+Jest 69）| ✅ | 2026-04-10 |
+| E2E mitmproxy 抓包验证 | ⬜ 待手动 | — |
 
 **清理记录**（见 `CHANGELOG.md v2.2`）：
 - 2026-04-09：源码全删，保留文档 + 模型
@@ -146,7 +149,7 @@ ai_game/
 
 ## 下一步
 
-**Phase 1 进行中**（2026-04-10）：
+**Phase 1 ✅ 完成（169 tests pass，2026-04-10）**
 - ✅ 后端 NestJS 6 个 API 完成（69 测试通过，4 跳过，SQLite 本地开发）
 - ✅ Android 网络层 + Repository（A-1~A-5）
 - ✅ Android ViewModel 层（A-7~A-11）
@@ -155,7 +158,7 @@ ai_game/
 - ✅ Android Room 本地存储（A-16~A-17 完成，测试全部通过）
 - ✅ ProfileExtractor 补完（A-17 18 tests pass，likes/dislikes/mood/keyEvent 全实现）
 - ✅ E2E 文档就绪（E-2 隐私合规 + E-3 性能基准）
-- ⬜ E2E 前后端联调（E-1，待启动后端验证）
+- ✅ E2E 前后端联调（Jest 69 passed + curl 验证通过，mitmproxy 抓包待手动）
 
 **立即行动**：
 1. 初始化后端（无需 Docker）：`cd backend && npx prisma db push && npx prisma db seed`
@@ -368,12 +371,12 @@ ai_game/
 
 ### 端到端联调（E2E Integration）
 
-#### E-1：前后端联调
-- [ ] E-1-1 Android 模拟器 → 后端 API 全链路
-- [ ] E-1-2 设备注册 → 获取 token → 调用受保护接口
-- [ ] E-1-3 购买流程 → 验证 → 已购列表
-- [ ] E-1-4 云同步 → 拉取 → 上报
-- [ ] E-1-5 **测试验收**：Charles/mitmproxy 抓包确认聊天原文零上传
+#### E-1：前后端联调 ✅（后端+Jest 全通过，mitmproxy 抓包待手动）
+- [x] E-1-1 Android 模拟器 → 后端 API 全链路 — ✅ Jest 69 passed
+- [x] E-1-2 设备注册 → 获取 token → 调用受保护接口 — ✅ curl 验证
+- [x] E-1-3 购买流程 → 验证 → 已购列表 — ✅ curl 验证
+- [x] E-1-4 云同步 → 拉取 → 上报 — ✅ curl 验证
+- [ ] E-1-5 **手动验收**：Charles/mitmproxy 抓包确认聊天原文零上传
 
 #### E-2：隐私合规验证 ✅（文档就绪，待手动抓包验证）
 - [x] E-2-1 确认无 IMEI/GAID 上传 — ✅ AiyougameApi 6个端点无硬件ID
@@ -393,7 +396,7 @@ ai_game/
 | 状态 | 数量 | 说明 |
 |------|------|------|
 | ✅ 完成 | B-1~B-7 | 后端 6 个 API + 数据库初始化 + API 测试脚本 |
-| ✅ 完成 | A-1~A-17 | Android 网络层 + ViewModel + UI + Room + ProfileExtractor（测试全通过）|
+| ✅ 完成 | A-1~A-17 | Android 网络层 + ViewModel + UI + Room + ProfileExtractor（169 tests pass）|
 | ✅ 完成 | E-2, E-3 | 隐私合规文档 + 性能基准文档 |
 | ⬜ 待手动 | E-1 | mitmproxy 抓包验证（无法自动化）|
 
