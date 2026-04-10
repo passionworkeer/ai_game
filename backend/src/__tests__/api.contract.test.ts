@@ -7,7 +7,7 @@
 
 import { INestApplication, Module, ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as request from 'supertest';
+import request from 'supertest';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../app.module';
 import { HttpExceptionFilter } from '../common/filters/http-exception.filter';

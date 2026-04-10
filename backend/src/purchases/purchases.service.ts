@@ -23,7 +23,6 @@ export class PurchasesService {
     status: string;
     modelUrl: string;
   }> {
-    // 1. 查询角色是否存在
     const character = await this.prisma.character.findUnique({
       where: { id: dto.characterId },
     });
@@ -35,7 +34,6 @@ export class PurchasesService {
       });
     }
 
-    // 2. 幂等检查：已购买返回 409
     const existing = await this.prisma.purchase.findUnique({
       where: {
         userId_characterId: {
@@ -52,23 +50,19 @@ export class PurchasesService {
       });
     }
 
-    // 3. 校验支付金额
     if (dto.paidAmount < character.price) {
       throw new UnprocessableEntityException({
         code: ErrorCodes.PURCHASE_VERIFY_FAILED,
-        message: `支付金额不足，期望 ${character.price} 分，实际 ${dto.paidAmount} 分`,
+        message: '支付金额不足，期望 ' + character.price + ' 分，实际 ' + dto.paidAmount + ' 分',
       });
     }
 
-    // 4. Phase 1 简化：signature 扩展点预留（暂不校验）
-    // TODO (Phase 2): 接入真实签名校验
     if (dto.signature) {
       this.logger.debug(
-        `Signature present, Phase 1 skip validation for user ${currentUser.userId.slice(0, 8)}...`,
+        'Signature present, Phase 1 skip validation for user ' + currentUser.userId.slice(0, 8) + '...',
       );
     }
 
-    // 5. 创建或更新购买记录
     const paidAtDate = new Date(dto.paidAt);
 
     const purchase = await this.prisma.purchase.upsert({
@@ -97,7 +91,7 @@ export class PurchasesService {
     });
 
     this.logger.log(
-      `Purchase verified for user ${currentUser.userId.slice(0, 8)}..., character: ${character.code}`,
+      'Purchase verified for user ' + currentUser.userId.slice(0, 8) + '..., character: ' + character.code,
     );
 
     return {
@@ -140,5 +134,37 @@ export class PurchasesService {
         paidAt: r.paidAt?.toISOString() ?? '',
       })),
     };
+  }
+
+  async updatePurchaseByOrderId(
+    outTradeNo: string,
+    channel: string,
+    channelTransactionId: string,
+  ): Promise<void> {
+    const purchase = await this.prisma.purchase.findFirst({
+      where: { channelOrderId: outTradeNo },
+    });
+
+    if (!purchase) {
+      this.logger.warn('Purchase not found for outTradeNo: ' + outTradeNo.slice(0, 8) + '...');
+      return;
+    }
+
+    if (purchase.status === 'completed') {
+      this.logger.log('Purchase already completed: ' + purchase.id.slice(0, 8));
+      return;
+    }
+
+    await this.prisma.purchase.update({
+      where: { id: purchase.id },
+      data: {
+        status: 'completed',
+        channel: channel,
+        channelOrderId: outTradeNo,
+        paidAt: new Date(),
+      },
+    });
+
+    this.logger.log('Purchase updated via callback: purchaseId=' + purchase.id.slice(0, 8) + ', channel=' + channel);
   }
 }

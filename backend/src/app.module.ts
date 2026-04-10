@@ -4,6 +4,8 @@ import { AuthModule } from './auth/auth.module';
 import { CharactersModule } from './characters/characters.module';
 import { PurchasesModule } from './purchases/purchases.module';
 import { SyncModule } from './sync/sync.module';
+import { PaymentModule } from './payment/payment.module';
+import { DrmModule } from './drm/drm.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { SyncModule } from './sync/sync.module';
     CharactersModule,
     PurchasesModule,
     SyncModule,
+    PaymentModule,
+    DrmModule,
   ],
 })
 export class AppModule {}

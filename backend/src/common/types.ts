@@ -26,10 +26,12 @@ export const ErrorCodes = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
 
-// JWT payload 结构
+// JWT payload 结构（Phase 2 扩展）
 export interface JwtPayload {
   sub: string;       // userId
-  deviceId: string;  // 脱敏设备标识
+  deviceId?: string; // 设备匿名时有值
+  phone?: string;    // 手机登录时有值
+  appleId?: string;  // Apple 登录时有值
   iat?: number;
   exp?: number;
 }
@@ -38,4 +40,6 @@ export interface JwtPayload {
 export interface CurrentUserPayload {
   userId: string;
   deviceId: string;
+  phone?: string;
+  appleId?: string;
 }

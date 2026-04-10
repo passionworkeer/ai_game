@@ -14,6 +14,12 @@ model User {
   id         String    @id @default(uuid())
   /// 脱敏设备标识：客户端生成 UUID v4，不使用真实 IMEI/GAID
   deviceId   String    @unique
+  /// 手机号（可选，账号升级后填写）
+  phone      String?   @unique
+  /// Apple ID（可选，账号升级后填写）
+  appleId    String?   @unique
+  /// 微信 union_id（可选）
+  unionId    String?   @unique
   /// 昵称（来自客户端同步）
   nickname   String    @default("宝宝")
   /// 云端备份的结构化 profile（JSON）
