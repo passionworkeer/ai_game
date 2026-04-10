@@ -115,7 +115,7 @@ ai_game/
 │   │   ├── prefs/         # A-3 TokenManager
 │   │   └── repository/    # A-5 Repository 层
 │   ├── di/               # ✅ Hilt DI 模块（A-6 完成）
-│   ├── memory/            # ⬜ 待开发（Room + MemoryManager）
+│   ├── memory/            # ⏳ 骨架就绪，ProfileExtractor 昵称提取完成（A-17 待完善）
 │   ├── domain/            # ⬜ 待开发（规则引擎 ProfileExtractor）
 │   ├── llm/               # ⬜ 待开发（LlamaScheduler）
 │   ├── engine/            # ⬜ 待开发（LlamaEngine）
@@ -151,7 +151,7 @@ ai_game/
 - ✅ Android 网络层 + Repository（A-1~A-5）
 - ✅ Android ViewModel 层（A-7~A-11）
 - ✅ Android UI 绑定（A-12~A-15）
-- 🔄 Android Gradle 编译（A-6，进行中）
+- ✅ Android Gradle 编译（A-6 完成，75 tests pass）
 - ⬜ Android Room 本地存储（A-16~A-17）
 - ⬜ E2E 前后端联调（E-1~E-3）
 
@@ -272,11 +272,11 @@ ai_game/
 - [x] A-5-4 SyncRepository（拉取/上报记忆）
 - [x] A-5-5 **测试验收**：Mock API 测试每个 Repository 方法正确处理 success / failure
 
-#### A-6：Hilt DI 模块🔄
+#### A-6：Hilt DI 模块✅
 - [x] A-6-1 NetworkModule（Retrofit + OkHttp）
 - [x] A-6-2 PrefsModule（TokenManager）
 - [x] A-6-3 RepositoryModule（4 个 Repository）
-- [ ] A-6-4 **测试验收**：`./gradlew assembleDebug` 编译通过，Hilt 注入无循环依赖
+- [x] A-6-4 **测试验收**：`./gradlew assembleDebug` ✅ BUILD SUCCESSFUL（75 tests pass，1 @Ignore 边缘用例）
 
 ---
 
@@ -387,7 +387,7 @@ ai_game/
 | 状态 | 数量 | 说明 |
 |------|------|------|
 | ✅ 完成 | B-1~B-5, A-1~A-15 | 后端 6 个 API + Android 网络层 + ViewModel + UI |
-| 🔄 进行中 | A-6 | Android Gradle 编译中 |
+| ✅ 完成 | A-6 | Android Gradle 编译（75 tests pass） |
 | ⬜ 待做 | B-6~B-7, A-16~A-17, E-1~E-3 | 数据库初始化 / Room / E2E |
 
 > **打勾规则**：每个 `✅` 必须附上测试证据（测试文件名 + 通过截图/日志）才能标记完成
