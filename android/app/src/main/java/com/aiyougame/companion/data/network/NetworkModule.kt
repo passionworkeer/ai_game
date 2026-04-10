@@ -1,0 +1,61 @@
+package com.aiyougame.companion.data.network
+
+import com.aiyougame.companion.data.api.AiyougameApi
+import com.aiyougame.companion.data.prefs.TokenManager
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Singleton
+
+/**
+ * Hilt module providing singleton instances of the network stack.
+ * Configured for Android emulator access to host machine localhost (10.0.2.2).
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    private const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(tokenManager: TokenManager): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val token = tokenManager.getToken()
+                val request = if (token != null) {
+                    original.newBuilder()
+                        .header("Authorization", "Bearer $token")
+                        .header("Content-Type", "application/json")
+                        .build()
+                } else {
+                    original.newBuilder()
+                        .header("Content-Type", "application/json")
+                        .build()
+                }
+                chain.proceed(request)
+            }
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAiyougameApi(retrofit: Retrofit): AiyougameApi {
+        return retrofit.create(AiyougameApi::class.java)
+    }
+}

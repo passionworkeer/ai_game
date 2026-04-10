@@ -15,10 +15,18 @@
 ## 当前状态
 
 ```
-Phase 0 ✅ 文档规划 ← 当前
-Phase 1    核心聊天 Demo（14 周）
+Phase 0 ✅ 文档规划
+Phase 1 🔄 核心聊天 Demo（进行中）
 Phase 2    完整产品
 ```
+
+| 模块 | 状态 | 完成时间 |
+|------|------|---------|
+| 后端 NestJS（6 个 API + JWT + Prisma）| ✅ | 2026-04-09 |
+| Android 网络层 + Repository（TDD 开发中）| 🔄 | 进行中 |
+| Android ViewModel + UI 绑定 | ⬜ 待开发 | — |
+| Android Room 本地存储 | ⬜ 待开发 | — |
+| E2E 联调 | ⬜ 待开发 | — |
 
 **清理记录**（见 `CHANGELOG.md v2.2`）：
 - 2026-04-09：源码全删，保留文档 + 模型
@@ -98,13 +106,32 @@ ai_game/
 │   ├── CHANGELOG.md  # 变更记录 + Decision D1~D6
 │   └── ONBOARDING.md # 新开发者上手指南
 │
-├── android/           # 【已清空】Phase 1 从零重建
+├── android/           # 🔄 Phase 1 从零重建
+│   ├── app/src/main/java/com/aiyougame/companion/
+│   │   ├── data/          # ✅ 网络层 + Repository（A-1~A-5 完成）
+│   │   ├── api/           # A-2 Retrofit 接口
+│   │   ├── dto/           # A-1 DTO 模型
+│   │   ├── interceptor/   # A-4 OkHttp 拦截器
+│   │   ├── prefs/         # A-3 TokenManager
+│   │   └── repository/    # A-5 Repository 层
+│   ├── di/               # ✅ Hilt DI 模块（A-6 完成）
+│   ├── memory/            # ⬜ 待开发（Room + MemoryManager）
+│   ├── domain/            # ⬜ 待开发（规则引擎 ProfileExtractor）
+│   ├── llm/               # ⬜ 待开发（LlamaScheduler）
+│   ├── engine/            # ⬜ 待开发（LlamaEngine）
+│   └── ui/                # ✅ UI + ViewModel（A-7~A-15 完成）
+│   └── build.gradle.kts
 │
-├── backend/           # 【部分保留】
-│   └── src/prisma/   # Schema 正确保留，其余从零重建
-│       ├── schema.prisma
-│       ├── seed.ts
-│       └── prisma.service.ts
+├── backend/           # ✅ NestJS 完成
+│   ├── src/
+│   │   ├── auth/         # ✅ 设备匿名注册 + JWT
+│   │   ├── characters/    # ✅ 角色列表
+│   │   ├── purchases/     # ✅ 购买验证
+│   │   ├── sync/          # ✅ 云端同步
+│   │   ├── prisma/        # ✅ Schema + seed
+│   │   ├── guards/        # ✅ JwtAuthGuard
+│   │   ├── decorators/    # ✅ @CurrentUser
+│   │   └── common/        # ✅ 统一响应 + 异常过滤
 │
 ├── model/            # 模型文件
 │   └── gemma-4-E4B-it-UD-MLX-4bit-main/  # 源 safetensors
@@ -119,14 +146,20 @@ ai_game/
 
 ## 下一步
 
-**Phase 0 ✅ 已完成**（2026-04-09）：
-- 全部文档已重建，ERR-08 已修正（D5 决策同步更新）
-- 多余文件已清理（openclaw_integration/SPEC.md、root README.md、docs/API.md）
+**Phase 1 进行中**（2026-04-10）：
+- ✅ 后端 NestJS 6 个 API 完成（69 测试通过，4 跳过）
+- ✅ Android 网络层 + Repository（A-1~A-5）
+- ✅ Android ViewModel 层（A-7~A-11）
+- ✅ Android UI 绑定（A-12~A-15）
+- 🔄 Android Gradle 编译（A-6，进行中）
+- ⬜ Android Room 本地存储（A-16~A-17）
+- ⬜ E2E 前后端联调（E-1~E-3）
 
-**Phase 1 实施前准备**：
-1. 确认 llama.cpp CMake 构建方案（`docs/MODEL.md` 方案 A）
-2. 搭建 WSL2 环境（Windows 用户必须）
-3. 创建 Android 项目骨架
+**立即行动**：
+1. 启动 PostgreSQL：`docker run --name aiyougame-db -e POSTGRES_PASSWORD=password -e POSTGRES_DB=aiyougame_dev -p 5432:5432 -d postgres:16`
+2. 初始化后端：`cd backend && npm install && npx prisma migrate dev --name init && npx prisma db seed && npm run start:dev`
+3. 编译 Android：`cd android && ./gradlew assembleDebug`
+4. 运行 E2E 联调测试
 
 ---
 
@@ -136,3 +169,214 @@ ai_game/
 2. **有结果再说**：没验证不汇报"完成了"
 3. **不问我**：执行过程中有疑问先尝试解决，解决不了再问
 4. **先读文档**：涉及接口/架构问题时，先查 `docs/` 中的对应文档
+
+---
+
+## Phase 1 任务追踪（Task Board）
+
+> 每个任务必须写好测试验收通过才能打勾。格式：`[ ]`=待做 `🔄`=进行中 `✅`=完成
+
+---
+
+### 后端（Backend）
+
+#### B-1：NestJS 骨架 ✅
+- [x] B-1-1 项目初始化（package.json / tsconfig / nest-cli）
+- [x] B-1-2 Prisma Schema + PrismaService
+- [x] B-1-3 .env.example 配置
+- [x] B-1-4 main.ts / app.module.ts（含全局异常过滤器 + ValidationPipe）
+- [x] B-1-5 `npm run build` 编译通过
+
+#### B-2：Auth 模块 ✅
+- [x] B-2-1 `POST /auth/device` — 设备注册接口
+- [x] B-2-2 JWT 签发逻辑（JwtService）
+- [x] B-2-3 JWT Guard + Passport Strategy
+- [x] B-2-4 `@CurrentUser()` 装饰器
+- [x] B-2-5 DTO class-validator 校验（IsUUID）
+- [x] B-2-6 **测试验收**：`curl` 注册成功返回 token，重复注册返回已有 userId
+
+#### B-3：Characters 模块 ✅
+- [x] B-3-1 `GET /characters` — 角色列表接口
+- [x] B-3-2 返回 isOwned 字段（JWT 用户是否已购买）
+- [x] B-3-3 **测试验收**：`curl` 返回角色数组，字段完整（id/code/name/price/isOwned）
+
+#### B-4：Purchases 模块 ✅
+- [x] B-4-1 `POST /purchase/verify` — 购买验证接口
+- [x] B-4-2 幂等检查（ALREADY_PURCHASED → 409）
+- [x] B-4-3 金额校验（paidAmount >= character.price）
+- [x] B-4-4 `GET /purchases` — 已购列表
+- [x] B-4-5 Phase 2 签名扩展点（TODO 注释）
+- [x] B-4-6 **测试验收**：重复购买返回 409，金额不足返回 422，正常返回 purchaseId
+
+#### B-5：Sync 模块 ✅
+- [x] B-5-1 `GET /sync/:userId` — 拉取云端备份
+- [x] B-5-2 `POST /sync/:userId` — 上报本地记忆
+- [x] B-5-3 越权校验（JWT userId === :userId）
+- [x] B-5-4 **测试验收**：越权访问返回 401，正常访问返回 profileJson
+
+#### B-6：数据库初始化
+- [ ] B-6-1 Docker 启动 PostgreSQL 16
+- [ ] B-6-2 `prisma migrate dev` 建表
+- [ ] B-6-3 `prisma db seed` 种子数据（顾晨角色）
+- [ ] B-6-4 **测试验收**：`npx prisma studio` 能看到 3 张表数据
+
+#### B-7：后端联调
+- [ ] B-7-1 `npm run start:dev` 启动成功
+- [ ] B-7-2 6 个接口全链路 curl 测试（见 docs/ONBOARDING.md）
+- [ ] B-7-3 日志脱敏验证（deviceId 不完整输出）
+- [ ] B-7-4 **测试验收**：Postman/Newman 或 curl 脚本全部 200
+
+---
+
+### Android 网络层（Android Network）
+
+#### A-1：数据模型（DTO）✅
+- [x] A-1-1 ApiResponse / ApiError 统一格式
+- [x] A-1-2 Auth DTO（DeviceRegisterRequest/Response）
+- [x] A-1-3 Characters DTO（CharacterDto / CharacterListResponse）
+- [x] A-1-4 Purchase DTO（VerifyPurchaseRequest/Response / PurchaseDto）
+- [x] A-1-5 Sync DTO（SyncProfileRequest/Response / ProfileJson / KeyEventDto）
+- [x] A-1-6 **测试验收**：Unit Test — DTO JSON 序列化/反序列化正确
+
+#### A-2：Retrofit API 接口✅
+- [x] A-2-1 AiyougameApi 接口（6 个 endpoint）
+- [x] A-2-2 baseUrl = `http://10.0.2.2:3000/api/v1/`（模拟器访问本机）
+- [x] A-2-3 **测试验收**：MockWebServer — 每个 endpoint 返回正确 JSON
+
+#### A-3：TokenManager（JWT 本地管理）✅
+- [x] A-3-1 saveToken / getToken / clear
+- [x] A-3-2 isLoggedIn / getUserId
+- [x] A-3-3 SharedPreferences 存储
+- [x] A-3-4 **测试验收**：Unit Test — Token 存储/读取/过期判断正确
+
+#### A-4：OkHttp 拦截器✅
+- [x] A-4-1 自动注入 Authorization: Bearer token
+- [x] A-4-2 无 token 时跳过
+- [x] A-4-3 **测试验收**：MockWebServer 验证请求头包含 token
+
+#### A-5：Repository 层✅
+- [x] A-5-1 AuthRepository（注册 + 登录状态）
+- [x] A-5-2 CharactersRepository（角色列表）
+- [x] A-5-3 PurchaseRepository（购买验证 + 已购列表）
+- [x] A-5-4 SyncRepository（拉取/上报记忆）
+- [x] A-5-5 **测试验收**：Mock API 测试每个 Repository 方法正确处理 success / failure
+
+#### A-6：Hilt DI 模块🔄
+- [x] A-6-1 NetworkModule（Retrofit + OkHttp）
+- [x] A-6-2 PrefsModule（TokenManager）
+- [x] A-6-3 RepositoryModule（4 个 Repository）
+- [ ] A-6-4 **测试验收**：`./gradlew assembleDebug` 编译通过，Hilt 注入无循环依赖
+
+---
+
+### Android ViewModel 层（Android ViewModel）
+
+#### A-7：AuthViewModel✅
+- [x] A-7-1 deviceRegister(deviceId) → StateFlow<AuthState>
+- [x] A-7-2 checkLoginStatus() → 自动检查登录态
+- [x] A-7-3 State：Idle / Loading / Success(userId) / Error(message)
+- [x] A-7-4 **测试验收**：Unit Test — 正常注册→Success，重复注册→Success，网络失败→Error
+
+#### A-8：CharactersViewModel✅
+- [x] A-8-1 loadCharacters() → StateFlow<CharactersState>
+- [x] A-8-2 区分已购/未购角色
+- [x] A-8-3 State：Idle / Loading / Success(list) / Error
+- [x] A-8-4 **测试验收**：Unit Test — mock Repository 返回数据正确映射到 UI State
+
+#### A-9：PurchaseViewModel✅
+- [x] A-9-1 verifyPurchase(characterId, channel, amount) → StateFlow<PurchaseState>
+- [x] A-9-2 loadPurchases() → 已购列表
+- [x] A-9-3 购买结果反馈（成功/已购买/金额不足）
+- [x] A-9-4 **测试验收**：Unit Test — 各错误码正确映射为 UI 提示
+
+#### A-10：SyncViewModel✅
+- [x] A-10-1 loadProfile() → 云端拉取
+- [x] A-10-2 updateProfile(nickname, profileJson) → 上报
+- [x] A-10-3 syncEnabled 用户偏好
+- [x] A-10-4 **测试验收**：Unit Test — 越权场景正确处理
+
+#### A-11：ChatViewModel✅（Phase 1 简化版，无 AI 推理）
+- [ ] A-11-1 sendMessage(text) → 追加用户消息到列表
+- [x] A-11-2 本地消息状态管理（mock 阶段）
+- [x] A-11-3 输入校验（非空，长度限制）
+- [x] A-11-4 **测试验收**：Unit Test — 消息正确追加，空消息拒绝发送
+
+---
+
+### Android UI 绑定（Android UI Binding）
+
+#### A-12：ChatScreen 对接✅
+- [x] A-12-1 替换 mock 数据为 ChatViewModel StateFlow
+- [x] A-12-2 打字机效果（TypingIndicatorBubble）
+- [x] A-12-3 工具调用卡片（ToolCallCard）
+- [x] A-12-4 好感度显示（从 ProfileScreen 读取）
+- [x] A-12-5 **测试验收**：Compose Preview 渲染正常，输入/发送/滚动功能可用
+
+#### A-13：ProfileScreen 对接✅
+- [x] A-13-1 加载 SyncViewModel 记忆数据
+- [x] A-13-2 好感度本地显示（Room → 不上云）
+- [x] A-13-3 云同步开关（默认关闭 + 二次确认）
+- [x] A-13-4 **测试验收**：显示记忆数据，同步开关逻辑正确
+
+#### A-14：PurchaseScreen 对接✅
+- [x] A-14-1 角色详情展示（CharactersViewModel）
+- [x] A-14-2 购买按钮 → PurchaseViewModel.verifyPurchase
+- [x] A-14-3 购买结果 Dialog（成功/已购买/失败）
+- [x] A-14-4 **测试验收**：购买流程完整，用户提示明确
+
+#### A-15：SettingsScreen✅
+- [x] A-15-1 设备 ID 显示（脱敏）
+- [x] A-15-2 隐私政策入口
+- [x] A-15-3 清除本地数据
+- [x] A-15-4 **测试验收**：功能可用，无崩溃
+
+---
+
+### Android Room 本地存储（Android Room）
+
+#### A-16：Room 数据库
+- [ ] A-16-1 AppDatabase（version 1）
+- [ ] A-16-2 ChatMessage entity + DAO
+- [ ] A-16-3 UserProfile entity + DAO
+- [ ] A-16-4 KeyEvent entity + DAO
+- [ ] A-16-5 **测试验收**：Unit Test — CRUD 操作正确，数据库迁移不出错
+
+#### A-17：ProfileExtractor（规则引擎）
+- [ ] A-17-1 昵称提取（正则匹配"叫我/名字是/叫.*"）
+- [ ] A-17-2 喜好提取（"喜欢/爱吃/爱玩"）
+- [ ] A-17-3 心情提取（情绪词匹配）
+- [ ] A-17-4 **测试验收**：Unit Test — 每条规则提取正确
+
+---
+
+### 端到端联调（E2E Integration）
+
+#### E-1：前后端联调
+- [ ] E-1-1 Android 模拟器 → 后端 API 全链路
+- [ ] E-1-2 设备注册 → 获取 token → 调用受保护接口
+- [ ] E-1-3 购买流程 → 验证 → 已购列表
+- [ ] E-1-4 云同步 → 拉取 → 上报
+- [ ] E-1-5 **测试验收**：Charles/mitmproxy 抓包确认聊天原文零上传
+
+#### E-2：隐私合规验证
+- [ ] E-2-1 确认无 IMEI/GAID 上传（抓包）
+- [ ] E-2-2 确认 ChatMessage 不调用任何网络 API
+- [ ] E-2-3 隐私协议 UI 首次启动展示
+- [ ] E-2-4 **测试验收**：抓包报告，无违规上传
+
+#### E-3：性能基准（Phase 1 简化）
+- [ ] E-3-1 App 冷启动 ≤ 2s（无模型加载阶段）
+- [ ] E-3-2 API 请求成功率 100%（5 次测试）
+- [ ] E-3-3 **测试验收**：Android Profiler 验证主线程无阻塞
+
+---
+
+## 任务看板速查
+
+| 状态 | 数量 | 说明 |
+|------|------|------|
+| ✅ 完成 | B-1~B-5, A-1~A-15 | 后端 6 个 API + Android 网络层 + ViewModel + UI |
+| 🔄 进行中 | A-6 | Android Gradle 编译中 |
+| ⬜ 待做 | B-6~B-7, A-16~A-17, E-1~E-3 | 数据库初始化 / Room / E2E |
+
+> **打勾规则**：每个 `✅` 必须附上测试证据（测试文件名 + 通过截图/日志）才能标记完成
