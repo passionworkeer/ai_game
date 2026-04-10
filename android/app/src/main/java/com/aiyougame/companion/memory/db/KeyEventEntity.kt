@@ -23,5 +23,5 @@ data class KeyEventEntity(
     val characterId: String,
     val type: String,
     val content: String,
-    val happenedAt: Long = System.currentTimeMillis()
+    val happenedAt: Long? = null
 )

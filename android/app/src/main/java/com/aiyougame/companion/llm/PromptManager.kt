@@ -1,6 +1,7 @@
 package com.aiyougame.companion.llm
 
 import android.content.Context
+import com.aiyougame.companion.memory.MemoryManager
 import com.aiyougame.companion.memory.db.KeyEventEntity
 import com.aiyougame.companion.memory.db.UserProfileEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,13 +31,84 @@ class PromptManager @Inject constructor(
     // ──────────────────────────────────────────────────────────────
 
     /**
-     * 构建完整 System Prompt。
-     *
-     * @param characterId   角色 ID（小写），对应 assets 目录结构
-     * @param affectionLevel 好感度分数（0–100），决定注入哪级亲密片段
-     * @param userProfile   用户画像（昵称/喜好/心情），可为空
-     * @param recentEvents  近期关键事件列表，可为空
-     * @return 拼接后的完整 System Prompt 字符串
+     * Convenience overload — extracts [UserProfileEntity] and [KeyEventEntity] from [snapshot].
+     */
+    fun buildSystemPrompt(
+        characterId: String,
+        affectionLevel: Int,
+        snapshot: MemoryManager.MemorySnapshot,
+    ): String {
+        // Parse userProfile string into a synthetic UserProfileEntity for the existing builder
+        val userProfile: UserProfileEntity? = snapshot.userProfile
+            .takeIf { it.isNotBlank() && it != "（暂无用户画像）" }
+            ?.let { parseUserProfileString(it) }
+
+        val recentEvents: List<KeyEventEntity> = snapshot.keyEvents
+            .takeIf { it.isNotBlank() && it != "（暂无关键事件）" }
+            ?.let { parseKeyEventsString(it) }
+            ?: emptyList()
+
+        return buildSystemPrompt(
+            characterId = characterId,
+            affectionLevel = affectionLevel,
+            userProfile = userProfile,
+            recentEvents = recentEvents,
+        )
+    }
+
+    /**
+     * Parse a userProfile snapshot string back into a [UserProfileEntity].
+     * Parses lines like "昵称：xxx", "喜好：xxx", "好感度：xx/100".
+     */
+    private fun parseUserProfileString(text: String): UserProfileEntity {
+        var nickname: String? = null
+        var interests: String? = null
+        var affectionLevel: Int? = null
+        text.lines().forEach { line ->
+            when {
+                line.startsWith("昵称：") -> nickname = line.removePrefix("昵称：").trim()
+                line.startsWith("喜好：") -> {
+                    val raw = line.removePrefix("喜好：").trim()
+                    if (raw.isNotBlank()) {
+                        interests = "[" + raw.split("、").joinToString(",") { "\"$it\"" } + "]"
+                    }
+                }
+                line.startsWith("好感度：") -> {
+                    val raw = line.removePrefix("好感度：").trim().substringBefore("/")
+                    affectionLevel = raw.toIntOrNull()
+                }
+            }
+        }
+        return UserProfileEntity(
+            nickname = nickname,
+            interests = interests ?: "",
+            affectionLevel = affectionLevel ?: 50,
+        )
+    }
+
+    /**
+     * Parse a keyEvents snapshot string back into a list of [KeyEventEntity].
+     * Parses lines like "[birthday] 用户生日：xxx".
+     */
+    private fun parseKeyEventsString(text: String): List<KeyEventEntity> {
+        return text.lines()
+            .filter { it.startsWith("[") }
+            .mapNotNull { line ->
+                val closeBracket = line.indexOf(']')
+                if (closeBracket < 0) return@mapNotNull null
+                val type = line.substring(1, closeBracket).trim()
+                val content = line.substring(closeBracket + 1).trim()
+                KeyEventEntity(
+                    characterId = "",
+                    type = type,
+                    content = content,
+                    happenedAt = 0L,
+                )
+            }
+    }
+
+    /**
+     * Full overload with raw entities.
      */
     fun buildSystemPrompt(
         characterId: String,

@@ -4,6 +4,8 @@ import com.aiyougame.companion.data.repository.SyncRepository
 import com.aiyougame.companion.data.prefs.TokenManager
 import com.aiyougame.companion.di.MainDispatcher
 import com.aiyougame.companion.llm.LlamaEngine
+import com.aiyougame.companion.llm.PromptManager
+import com.aiyougame.companion.memory.MemoryManager
 import com.aiyougame.companion.memory.ProfileExtractor
 import com.aiyougame.companion.memory.db.ChatMessageDao
 import com.aiyougame.companion.memory.db.KeyEventDao
@@ -34,6 +36,8 @@ class ChatViewModelTest {
     private lateinit var keyEventDao: KeyEventDao
     private lateinit var profileExtractor: ProfileExtractor
     private lateinit var llamaEngine: LlamaEngine
+    private lateinit var promptManager: PromptManager
+    private lateinit var memoryManager: MemoryManager
 
     private lateinit var viewModel: ChatViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -59,6 +63,15 @@ class ChatViewModelTest {
             flow { emit("收到啦～谢谢你跟我说这些") }
         }
 
+        promptManager = mockk(relaxed = true)
+        memoryManager = mockk(relaxed = true)
+        coEvery { memoryManager.buildSnapshot(any()) } returns MemoryManager.MemorySnapshot(
+            recentContext = "（暂无对话历史）",
+            userProfile = "（暂无用户画像）",
+            keyEvents = "（暂无关键事件）",
+        )
+        every { promptManager.buildSystemPrompt(any(), any(), any()) } returns "Mock System Prompt"
+
         viewModel = ChatViewModel(
             syncRepository,
             tokenManager,
@@ -67,6 +80,8 @@ class ChatViewModelTest {
             keyEventDao,
             profileExtractor,
             llamaEngine,
+            promptManager,
+            memoryManager,
             testDispatcher
         )
     }

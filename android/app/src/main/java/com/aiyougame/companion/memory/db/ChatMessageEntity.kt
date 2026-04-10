@@ -25,7 +25,7 @@ data class ChatMessageEntity(
     val msgId: Long = 0,
     val role: String,
     val content: String,
-    val timestamp: Long,
+    val timestamp: Long? = null,
     val isSent: Boolean = true,
     val isSummarized: Boolean = false,
     val characterCode: String = "gu_chen",

@@ -6,6 +6,8 @@ import com.aiyougame.companion.data.repository.SyncRepository
 import com.aiyougame.companion.data.prefs.TokenManager
 import com.aiyougame.companion.di.MainDispatcher
 import com.aiyougame.companion.llm.LlamaEngine
+import com.aiyougame.companion.llm.PromptManager
+import com.aiyougame.companion.memory.MemoryManager
 import com.aiyougame.companion.memory.ProfileExtractor
 import com.aiyougame.companion.memory.db.ChatMessageDao
 import com.aiyougame.companion.memory.db.ChatMessageEntity
@@ -33,8 +35,12 @@ class ChatViewModel @Inject constructor(
     private val keyEventDao: KeyEventDao,
     private val profileExtractor: ProfileExtractor,
     private val llamaEngine: LlamaEngine,
+    private val promptManager: PromptManager,
+    private val memoryManager: MemoryManager,
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
+
+    private var currentCharacterCode: String = "gu_chen"
 
     init {
         // Initialize LLM engine (Phase 1 mock returns immediately)
@@ -50,7 +56,7 @@ class ChatViewModel @Inject constructor(
                         id = entity.msgId.toString(),
                         text = entity.content,
                         isFromUser = entity.role == "user",
-                        timestamp = entity.timestamp
+                        timestamp = entity.timestamp ?: 0L
                     )
                 }
                 .let { messages ->
@@ -123,7 +129,12 @@ class ChatViewModel @Inject constructor(
 
         val messageId = UUID.randomUUID().toString()
         val timestamp = System.currentTimeMillis()
-        val systemPrompt = "你叫顾晨，是一个温柔贴心的 AI 伴侣。"
+        val snapshot = memoryManager.buildSnapshot(currentCharacterCode)
+        val systemPrompt = promptManager.buildSystemPrompt(
+            characterId = currentCharacterCode,
+            affectionLevel = _uiState.value.affectionScore,
+            snapshot = snapshot,
+        )
 
         // Accumulate tokens streamed from the engine for real-time display
         val accumulated = StringBuilder()

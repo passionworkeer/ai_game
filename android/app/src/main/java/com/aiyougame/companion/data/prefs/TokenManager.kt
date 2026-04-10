@@ -41,6 +41,12 @@ class TokenManager @Inject constructor(
         prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply()
     }
 
+    fun saveSelectedCharacter(characterCode: String) {
+        prefs.edit().putString(KEY_SELECTED_CHARACTER, characterCode).apply()
+    }
+
+    fun getSelectedCharacter(): String? = prefs.getString(KEY_SELECTED_CHARACTER, null)
+
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -51,5 +57,6 @@ class TokenManager @Inject constructor(
         private const val KEY_EXPIRES_AT = "expiresAt"
         private const val KEY_USER_ID = "userId"
         private const val KEY_DEVICE_ID = "deviceId"
+        private const val KEY_SELECTED_CHARACTER = "selectedCharacter"
     }
 }

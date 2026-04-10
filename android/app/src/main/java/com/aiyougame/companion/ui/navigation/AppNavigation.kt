@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.aiyougame.companion.ui.characters.CharacterSelectScreen
 import com.aiyougame.companion.ui.chat.ChatScreen
 import com.aiyougame.companion.ui.profile.ProfileScreen
 import com.aiyougame.companion.ui.purchase.PurchaseScreen
@@ -13,6 +14,7 @@ import com.aiyougame.companion.ui.startup.LoadingScreen
 
 sealed class Screen(val route: String) {
     object Loading : Screen("loading")
+    object CharacterSelect : Screen("characters")
     object Chat : Screen("chat")
     object Profile : Screen("profile")
     object Settings : Screen("settings")
@@ -28,7 +30,22 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     navController.navigate(Screen.Chat.route) {
                         popUpTo(Screen.Loading.route) { inclusive = true }
                     }
+                },
+                onNavigateToCharacterSelect = {
+                    navController.navigate(Screen.CharacterSelect.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
                 }
+            )
+        }
+        composable(Screen.CharacterSelect.route) {
+            CharacterSelectScreen(
+                onCharacterSelected = { _ ->
+                    navController.navigate(Screen.Chat.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Chat.route) {

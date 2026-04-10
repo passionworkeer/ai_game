@@ -3,36 +3,37 @@ package com.aiyougame.companion.ui.startup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.aiyougame.companion.ui.startup.StartupViewModel.StartupState
+import com.aiyougame.companion.ui.navigation.Screen
 
 /**
  * Loading screen shown during app startup.
- * Displays logo and handles auto-registration flow.
+ * Handles auto-registration then routes to character selection or chat.
  */
 @Composable
 fun LoadingScreen(
     viewModel: StartupViewModel = hiltViewModel(),
-    onNavigateToChat: () -> Unit
+    onNavigateToChat: () -> Unit,
+    onNavigateToCharacterSelect: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Navigate to chat when ready
     LaunchedEffect(uiState) {
         when (uiState) {
             is StartupViewModel.StartupState.AlreadyLoggedIn,
             is StartupViewModel.StartupState.RegistrationSuccess -> {
-                onNavigateToChat()
+                val selectedCode = viewModel.getSelectedCharacterCode()
+                if (selectedCode != null) {
+                    onNavigateToChat()
+                } else {
+                    onNavigateToCharacterSelect()
+                }
             }
             else -> { /* Stay on loading screen */ }
         }
@@ -49,22 +50,18 @@ fun LoadingScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(32.dp)
         ) {
-            // App logo placeholder
             Text(
                 text = "AI Companion",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = "Your personal AI companion",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
-
             Spacer(modifier = Modifier.height(48.dp))
 
             when (val state = uiState) {

@@ -5,6 +5,18 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Disable KSP incremental processing to avoid Windows incremental-cache corruption
+// when generated dirs are locked or partially deleted by clean runs.
+ksp {
+    arg("ksp.incremental", "false")
+    // Also pass as task arguments as fallback
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        kotlinOptions {
+            freeCompilerArgs += listOf("-Xskip-metadata-version-check")
+        }
+    }
+}
+
 android {
     namespace = "com.aiyougame.companion"
     compileSdk = 34
@@ -88,6 +100,8 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Image loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
     
     // Testing
     testImplementation("junit:junit:4.13.2")

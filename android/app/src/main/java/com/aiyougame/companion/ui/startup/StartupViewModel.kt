@@ -86,4 +86,6 @@ class StartupViewModel @Inject constructor(
     fun retry() {
         checkAndRegister()
     }
+
+    fun getSelectedCharacterCode(): String? = tokenManager.getSelectedCharacter()
 }
