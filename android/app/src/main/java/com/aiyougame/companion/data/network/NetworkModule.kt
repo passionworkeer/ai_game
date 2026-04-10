@@ -9,6 +9,8 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -57,5 +59,24 @@ object NetworkModule {
     @Singleton
     fun provideAiyougameApi(retrofit: Retrofit): AiyougameApi {
         return retrofit.create(AiyougameApi::class.java)
+    }
+
+    /**
+     * Bare OkHttpClient for model CDN downloads.
+     * No auth interceptor — CDN URLs are public and Range-header-aware.
+     * Uses a separate dispatcher from the auth client to avoid thread contention.
+     */
+    @Provides
+    @Singleton
+    @Named("download")
+    fun provideDownloadOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)   // large GGUF may take minutes
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .dispatcher(okhttp3.Dispatcher().apply {
+                maxRequests = 1  // one model at a time
+            })
+            .build()
     }
 }

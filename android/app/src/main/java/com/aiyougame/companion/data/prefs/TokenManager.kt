@@ -35,6 +35,12 @@ class TokenManager @Inject constructor(
         return token != null && System.currentTimeMillis() < expiresAt
     }
 
+    fun getDeviceId(): String? = prefs.getString(KEY_DEVICE_ID, null)
+
+    fun saveDeviceId(deviceId: String) {
+        prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply()
+    }
+
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -44,5 +50,6 @@ class TokenManager @Inject constructor(
         private const val KEY_TOKEN = "token"
         private const val KEY_EXPIRES_AT = "expiresAt"
         private const val KEY_USER_ID = "userId"
+        private const val KEY_DEVICE_ID = "deviceId"
     }
 }

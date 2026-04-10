@@ -9,8 +9,10 @@ import com.aiyougame.companion.ui.chat.ChatScreen
 import com.aiyougame.companion.ui.profile.ProfileScreen
 import com.aiyougame.companion.ui.purchase.PurchaseScreen
 import com.aiyougame.companion.ui.settings.SettingsScreen
+import com.aiyougame.companion.ui.startup.LoadingScreen
 
 sealed class Screen(val route: String) {
+    object Loading : Screen("loading")
     object Chat : Screen("chat")
     object Profile : Screen("profile")
     object Settings : Screen("settings")
@@ -19,7 +21,16 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Screen.Chat.route) {
+    NavHost(navController = navController, startDestination = Screen.Loading.route) {
+        composable(Screen.Loading.route) {
+            LoadingScreen(
+                onNavigateToChat = {
+                    navController.navigate(Screen.Chat.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Chat.route) {
             ChatScreen(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },

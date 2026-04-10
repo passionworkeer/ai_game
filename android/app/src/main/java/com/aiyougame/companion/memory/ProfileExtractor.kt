@@ -1,5 +1,7 @@
 package com.aiyougame.companion.memory
 
+import javax.inject.Inject
+
 data class ProfileExtraction(
     val nickname: String? = null,
     val likes: String? = null,
@@ -14,7 +16,7 @@ data class KeyEventData(
     val importance: Int,
 )
 
-class ProfileExtractor {
+class ProfileExtractor @Inject constructor() {
 
     // ── compiled once at class-load time ──────────────────────────────────────
     private val nicknamePatterns = listOf(

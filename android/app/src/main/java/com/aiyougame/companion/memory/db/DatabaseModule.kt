@@ -2,6 +2,7 @@ package com.aiyougame.companion.memory.db
 
 import android.content.Context
 import androidx.room.Room
+import com.aiyougame.companion.memory.ProfileExtractor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,4 +42,13 @@ object DatabaseModule {
     fun provideKeyEventDao(database: AppDatabase): KeyEventDao {
         return database.keyEventDao()
     }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object LlmModule {
+
+    @Provides
+    @Singleton
+    fun provideProfileExtractor(): ProfileExtractor = ProfileExtractor()
 }
