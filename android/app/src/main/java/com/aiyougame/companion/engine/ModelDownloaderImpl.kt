@@ -206,6 +206,8 @@ class ModelDownloaderImpl @Inject constructor(
         _progressFlow.value = ModelDownloader.Progress(0, 0, isComplete = true)
     }
 
+    override fun getModelPath(): String = modelFile.absolutePath
+
     /**
      * Compute SHA-256 hex string of a file.
      * File must exist and be readable.

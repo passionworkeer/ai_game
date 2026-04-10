@@ -6,9 +6,7 @@
 
 国内首款端侧离线 AI 乙女游戏陪伴 App（Gemma 4 本地推理 + OpenClaw PC 联动）。
 
-**当前阶段**：Phase 1 ✅ 完成（169 tests pass）
-
-**团队**：单人（你），全栈。
+**当前阶段**：Phase 2 🚀 进行中（2026-04-10 启动）
 
 **团队**：单人（你），全栈。
 
@@ -18,22 +16,33 @@
 
 ```
 Phase 0 ✅ 文档规划
-Phase 1 ✅ 核心聊天 Demo（完成，169 tests pass）
-Phase 2    完整产品
+Phase 1 ✅ 核心聊天 Demo（232 tests pass，BUILD SUCCESSFUL）
+Phase 2 🚀 完整产品（进行中）
 ```
 
 | 模块 | 状态 | 完成时间 |
 |------|------|---------|
-| 后端 NestJS（6 个 API + JWT + Prisma）| ✅ | 2026-04-09 |
+| 后端 NestJS（6 个 API + JWT + Prisma）| ✅ | 2026-04-10 |
 | Android 网络层 + Repository | ✅ | 2026-04-10 |
 | Android ViewModel + UI 绑定 | ✅ | 2026-04-10 |
 | Android Room 本地存储 | ✅ | 2026-04-10 |
 | E2E 联调（后端+Jest 69）| ✅ | 2026-04-10 |
 | E2E mitmproxy 抓包验证 | ⬜ 待手动 | — |
+| **Phase 2 P0-A3 LlamaEngine JNI 层** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A4 LlamaEngineImpl 激活** | ✅ | 2026-04-10 |
+| **Phase 2 P1-B1 微信/支付宝 SDK** | ✅ | 2026-04-10 |
+| **Phase 2 P1-B2 账号升级** | ✅ | 2026-04-10 |
+| **Phase 2 P1-B3 AES 密钥下发** | ✅ | 2026-04-10 |
 
-**清理记录**（见 `CHANGELOG.md v2.2`）：
-- 2026-04-09：源码全删，保留文档 + 模型
-- 原因：骨架含编译错误，必须重写
+---
+
+## Phase 2 任务追踪
+
+详见 `Phase2_TASKS.md`。当前里程碑：
+
+- **M1（进行中）**：LlamaEngine 真实推理 → P0-A3 ✅ → P0-A4 ✅ → P0-A5 🔄 → P0-A6 ⬜
+- **M2（待开始）**：多角色 + 语音 → P0-A7 ⬜ → P0-A8 ⬜ → P0-A9 ⬜
+- **M3（✅ 后端 P1 完成）**：支付/账号/AES密钥 → P1-B1 ✅ P1-B2 ✅ P1-B3 ✅
 
 ---
 

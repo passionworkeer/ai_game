@@ -59,4 +59,10 @@ interface ModelDownloader {
      * Safe to call even if file does not exist.
      */
     suspend fun deleteLocalModel()
+
+    /**
+     * Get the local model file path (e.g. filesDir/models/gemma-4-E4B-it-Q4_0.gguf).
+     * Does not check if file exists; use [isModelReady] first.
+     */
+    fun getModelPath(): String
 }

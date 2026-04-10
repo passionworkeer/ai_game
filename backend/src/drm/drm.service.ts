@@ -106,12 +106,11 @@ export class DrmService {
       throw new Error('DRM RSA public key not initialized');
     }
 
-    // @ts-ignore oaepHashAlgorithm supported in Node.js 20+
     const encrypted = crypto.publicEncrypt(
       {
         key: this.publicKeyPem,
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHashAlgorithm: 'sha256',
+        oaepHash: 'sha256',
       } as any,
       aesKey,
     );
@@ -127,12 +126,11 @@ export class DrmService {
       throw new Error('DRM RSA private key not initialized');
     }
 
-    // @ts-ignore oaepHashAlgorithm supported in Node.js 20+
     const decrypted = crypto.privateDecrypt(
       {
         key: this.privateKeyPem,
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHashAlgorithm: 'sha256',
+        oaepHash: 'sha256',
       } as any,
       Buffer.from(encryptedKey, 'base64'),
     );

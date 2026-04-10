@@ -5,114 +5,130 @@ import android.util.Log
 import com.aiyougame.companion.engine.ModelDownloader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Phase 2 LlamaEngine implementation — delegates to JNI native engine.
- *
- * Falls back to MockLlamaEngine when native library is not available.
- * State machine:
- *   Idle → Initializing → Ready → Released
- *                ↘ Error ← ─ ┘
- */
 @Singleton
 class LlamaEngineImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val modelDownloader: ModelDownloader,
-) : LlamaEngine {
+) : LlamaEngine, TokenCallback {
 
     companion object {
         private const val TAG = "LlamaEngineImpl"
         private const val CDN_URL = "https://cdn.aiyougame.com/models/gemma-4-E4B-it-Q4_0.gguf"
-        // TODO (Phase 2): real SHA-256 once model CDN is configured
         private const val MODEL_SHA256 = ""
-
-        // NDK ABI to use (arm64-v8a = modern Android devices)
-        private const val PREFERRED_ABI = "arm64-v8a"
+        private const val MAX_TOKENS = 256
+        private const val POLL_MS = 50L
     }
 
-    // Tracks whether native engine is loaded
-    @Volatile
-    private var nativePtr: Long = 0L
-
-    @Volatile
-    private var isInitialized: Boolean = false
-
-    // Fallback mock for when native library is unavailable
+    @Volatile private var nativePtr: Long = 0L
+    @Volatile private var isInitialized: Boolean = false
+    private var modelPath: String = ""
+    private val tokenQueue = ConcurrentLinkedQueue<String>()
+    @Volatile private var callbackDone = false
+    @Volatile private var callbackError: String? = null
+    private val accumulated = StringBuilder()
     private val mock: MockLlamaEngine = MockLlamaEngine()
 
     init {
-        // Try to load the native library; if it fails, nativePtr stays 0
         try {
             System.loadLibrary("llama_jni")
-            Log.d(TAG, "Native library loaded successfully")
+            Log.d(TAG, "Native library loaded")
         } catch (e: UnsatisfiedLinkError) {
-            Log.w(TAG, "Native library not available — using mock engine: ${e.message}")
+            Log.w(TAG, "Native unavailable: ${e.message}")
         }
     }
 
     override suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext Result.success(Unit)
-
         try {
-            // Ensure model is downloaded
-            Log.d(TAG, "Checking model availability...")
-            val modelReady = modelDownloader.isModelReady(MODEL_SHA256)
-            if (!modelReady) {
-                Log.d(TAG, "Model not ready, downloading...")
+            Log.d(TAG, "Checking model...")
+            if (!modelDownloader.isModelReady(MODEL_SHA256)) {
+                Log.d(TAG, "Downloading model...")
                 modelDownloader.download(CDN_URL, MODEL_SHA256)
                     .onFailure { return@withContext Result.failure(it) }
             }
-
-            // Initialize native engine if library loaded
-            if (nativePtr == 0L) {
-                // No native library — use mock
-                Log.w(TAG, "Using mock engine (native library unavailable)")
-                isInitialized = true
-                return@withContext Result.success(Unit)
+            modelPath = modelDownloader.getModelPath()
+            Log.d(TAG, "Model path: $modelPath")
+            if (nativePtr == 0L && nativeIsLoaded()) {
+                nativePtr = nativeInitEngine(modelPath)
+                if (nativePtr != 0L) {
+                    Log.d(TAG, "Native engine init OK: ptr=$nativePtr")
+                    val tpl = nativeGetChatTemplate(nativePtr)
+                    Log.d(TAG, "Chat template: ${if (tpl.isEmpty()) "(empty)" else "found"}")
+                }
             }
-
-            // nativeInitEngine is declared as external fun in the JNI layer
-            // nativePtr = nativeInitEngine(modelPath, nCtx, nThreads)
+            if (nativePtr == 0L) Log.w(TAG, "Using mock engine")
             isInitialized = true
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Initialization failed", e)
+            Log.e(TAG, "Init failed", e)
             Result.failure(e)
         }
     }
 
     override fun generateResponse(userMessage: String, systemPrompt: String): Flow<String> {
-        return if (nativePtr != 0L && isInitialized) {
-            // Real inference path (Phase 2 — requires NDK)
-            // return nativeGenerateStream(userMessage, systemPrompt)
-            flow { emit("【Phase 2: native inference pending — NDK required】") }
-                .flowOn(Dispatchers.IO)
-        } else {
-            // Mock inference path
-            mock.generateResponse(userMessage, systemPrompt)
+        if (nativePtr != 0L && isInitialized) {
+            return nativeGenerateFlow(userMessage, systemPrompt).flowOn(Dispatchers.IO)
         }
+        return mock.generateResponse(userMessage, systemPrompt)
+    }
+
+    private fun nativeGenerateFlow(userMessage: String, systemPrompt: String): Flow<String> = callbackFlow {
+        val template = if (nativePtr != 0L) nativeGetChatTemplate(nativePtr) else ""
+        val prompt = if (template.isNotEmpty()) applyTemplate(template, systemPrompt, userMessage)
+                     else "$systemPrompt\n\nUser: $userMessage\nAssistant:"
+        tokenQueue.clear(); callbackDone = false; callbackError = null; accumulated.setLength(0)
+        if (nativePtr != 0L) nativeGenerateStream(nativePtr, prompt, MAX_TOKENS, this@LlamaEngineImpl)
+        while (!callbackDone && !isClosedForSend) {
+            val tok = tokenQueue.poll()
+            if (tok != null) { accumulated.append(tok); trySend(tok) }
+            else delay(POLL_MS)
+        }
+        callbackError?.let { close(IllegalStateException(it)) }
+        awaitClose { if (nativePtr != 0L && !callbackDone) nativeAbort(nativePtr) }
+    }
+
+    private fun applyTemplate(tpl: String, sys: String, user: String): String {
+        return try {
+            when {
+                tpl.contains("Gemma") || tpl.contains("gemma") ->
+                    "<start_of_turn>model\n$sys\n$user<end_of_turn>\n<start_of_turn>model\n"
+                tpl.contains("messages") -> tpl
+                    .replace("{{ messages[0].role }}","system").replace("{{ messages[0].content }}",sys)
+                    .replace("{{ messages[1].role }}","user").replace("{{ messages[1].content }}",user)
+                    .replace("{{ BosToken }}","").replace("{{ eos_token }}","")
+                    .replace("{% for message in messages %}","")
+                    .replace("{% endfor %}","")
+                    .replace("{{ message.content }}","")
+                else -> "$sys\n\nUser: $user\nAssistant:"
+            }
+        } catch (e: Exception) { Log.w(TAG,"tpl apply failed",e); "$sys\n\nUser: $user\nAssistant:" }
     }
 
     override fun release() {
-        if (nativePtr != 0L) {
-            // nativeFree(nativePtr)
-            nativePtr = 0L
-            Log.d(TAG, "Native engine released")
-        }
+        if (nativePtr != 0L) { nativeAbort(nativePtr); nativeFree(nativePtr); nativePtr = 0L; Log.d(TAG,"released") }
         isInitialized = false
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // JNI declarations — implemented in llama_jni.cpp
-    // ──────────────────────────────────────────────────────────────
-    // private external fun nativeInitEngine(modelPath: String, nCtx: Int, nThreads: Int): Long
-    // private external fun nativeGenerateStream(userMessage: String, systemPrompt: String): Flow<String>
-    // private external fun nativeFree(ptr: Long)
-    // private external fun nativeGetChatTemplate(modelPath: String): String
+    override fun onToken(token: String) { tokenQueue.add(token) }
+    override fun onDone(fullText: String) { callbackDone = true }
+    override fun onError(error: String) { callbackError = error; callbackDone = true }
+
+    private fun nativeIsLoaded(): Boolean = try { System.loadLibrary("llama_jni"); true } catch (e: UnsatisfiedLinkError) { false }
+
+    // JNI (implemented in llama_jni.cpp)
+    private external fun nativeInitEngine(modelPath: String): Long
+    private external fun nativeFree(ptr: Long)
+    private external fun nativeGetChatTemplate(ptr: Long): String
+    private external fun nativeGenerateStream(ptr: Long, prompt: String, maxTokens: Int, callback: TokenCallback)
+    private external fun nativeAbort(ptr: Long)
 }

@@ -12,6 +12,7 @@ android/build/
 android/app/build/
 android/app/release/
 android/app/debug/
+android/app/.cxx/
 android/.idea/
 android/*.iml
 android/local.properties
