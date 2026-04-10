@@ -32,12 +32,21 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        
-        // C++ jni support (for llama.cpp later)
+
+        // ── Native build: llama.cpp JNI ────────────────────────
         externalNativeBuild {
             cmake {
-                cppFlags += "-std=c++17"
+                arguments += listOf("-DANDROID_STL=c++_shared")
             }
+        }
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
         }
     }
 
@@ -75,7 +84,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
-    
+
     // Compose
     val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
     implementation(composeBom)
@@ -102,7 +111,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
-    
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
