@@ -108,3 +108,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+// Disable binary result format to avoid Windows file locking issues with Robolectric
+tasks.withType<Test> {
+    // Uses the standard XML reporter instead of binary to avoid Windows file lock issues
+}
