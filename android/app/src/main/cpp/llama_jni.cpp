@@ -163,6 +163,7 @@ static jlong JNICALL nativeInitEngine(JNIEnv* env, jclass, jstring jPath) {
     ctx->id_pad = llama_vocab_pad(vocab);
     LOGI("init done: n_ctx=%d nth=%d id_eos=%d id_pad=%d",
          ctx->n_ctx, nth, (int)ctx->id_eos, (int)ctx->id_pad);
+    LOGI("llama.cpp backend ready");
 
     env->ReleaseStringUTFChars(jPath, path);
     jlong ptr = reinterpret_cast<jlong>(ctx);

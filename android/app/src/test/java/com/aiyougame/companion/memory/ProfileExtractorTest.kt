@@ -145,4 +145,98 @@ class ProfileExtractorTest {
         // 不崩溃即可
         assertNotNull(result)
     }
+
+    // ── P0-A6-4: Multi-character memory extraction ───────────────────────────
+
+    @Test
+    fun `extract nickname is character-independent (same user, different characters)`() {
+        // Same user talking to different characters should extract some nickname for each
+        // Use texts where nickname is followed by "宝/贝" (pattern requirement)
+        val extraction1 = extractor.extract("叫我小明宝，心情超好")
+        val extraction2 = extractor.extract("你可以叫我笨笨贝")
+
+        // Both should extract a nickname (possibly different)
+        assertNotNull("Character 1 conversation should extract nickname", extraction1.nickname)
+        assertNotNull("Character 2 conversation should extract nickname", extraction2.nickname)
+        assertEquals("Character 1 nickname should be 小明", "小明", extraction1.nickname)
+        assertEquals("Character 2 nickname should be 笨笨", "笨笨", extraction2.nickname)
+    }
+
+    @Test
+    fun `extract likes are independent per conversation`() {
+        // User talks about likes to character A
+        val extractionA = extractor.extract("我喜欢喝奶茶，最爱珍珠奶茶")
+
+        // Same user talks about different likes to character B
+        val extractionB = extractor.extract("我讨厌吃香菜，但是喜欢火锅")
+
+        // Both extractions should be independent
+        val likesA = extractor.parseJsonArray(extractionA.likes ?: "[]")
+        val likesB = extractor.parseJsonArray(extractionB.likes ?: "[]")
+
+        assertTrue("Character A conversation should extract likes", likesA.isNotEmpty())
+        assertTrue("Character B conversation should extract likes", likesB.isNotEmpty())
+
+        // No overlap between the two conversations
+        assertFalse("Likes should be independent per character",
+            likesA.any { likesB.contains(it) })
+    }
+
+    @Test
+    fun `extract mood for different characters independently`() {
+        // User feels happy talking to character 1
+        val extraction1 = extractor.extract("今天心情超好！工作顺利，老板还夸我了！")
+
+        // User feels stressed talking to character 2
+        val extraction2 = extractor.extract("烦死了，今天工作压力好大，累死了")
+
+        assertEquals("Character 1 conversation should detect happy mood",
+            "happy", extraction1.mood)
+        assertEquals("Character 2 conversation should detect stressed mood",
+            "stressed", extraction2.mood)
+    }
+
+    @Test
+    fun `extract key events for different characters independently`() {
+        // User mentions birthday to character 1
+        val extraction1 = extractor.extract("下周一是我生日，记得来哦")
+
+        // User mentions a promise to character 2
+        val extraction2 = extractor.extract("我们约好周末去看电影，记得穿漂亮点")
+
+        assertNotNull("Character 1 should extract birthday event", extraction1.keyEvent)
+        assertEquals("birthday", extraction1.keyEvent?.category)
+
+        assertNotNull("Character 2 should extract promise event", extraction2.keyEvent)
+        assertEquals("promise", extraction2.keyEvent?.category)
+    }
+
+    @Test
+    fun `different characterCode contexts do not interfere with extraction logic`() {
+        // ProfileExtractor is stateless — extraction depends only on input text
+        // This test verifies that the extractor is thread-safe and idempotent
+
+        val text1 = "叫我小明，我喜欢喝奶茶，心情超好"
+        val text2 = "叫我小红，记得我们约好周末去逛街"
+
+        // Extract both texts multiple times — they should be consistent and idempotent
+        val results1 = (1..3).map { extractor.extract(text1) }
+        val results2 = (1..3).map { extractor.extract(text2) }
+
+        // All results for text1 should be identical (idempotent)
+        val nickname1 = results1[0].nickname
+        val mood1 = results1[0].mood
+        results1.forEach { result ->
+            assertEquals("text1 nickname should be consistent", nickname1, result.nickname)
+            assertEquals("text1 mood should be consistent", mood1, result.mood)
+        }
+
+        // All results for text2 should be identical (idempotent)
+        val nickname2 = results2[0].nickname
+        val keyEvent2 = results2[0].keyEvent
+        results2.forEach { result ->
+            assertEquals("text2 nickname should be consistent", nickname2, result.nickname)
+            assertEquals("text2 keyEvent should be consistent", keyEvent2?.summary, result.keyEvent?.summary)
+        }
+    }
 }

@@ -18,7 +18,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "chat_history",
-    indices = [Index(value = ["timestamp"])]
+    indices = [Index(value = ["userId", "characterCode"]), Index(value = ["timestamp"])]
 )
 data class ChatMessageEntity(
     @PrimaryKey(autoGenerate = true)

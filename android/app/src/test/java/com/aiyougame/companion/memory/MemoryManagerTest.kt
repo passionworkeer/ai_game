@@ -44,11 +44,12 @@ class MemoryManagerTest {
         whenever(chatMessageDao.queryRecentByCharacter("gu_chen", 20)).doReturn(flowOf(messages))
 
         val profile = UserProfileEntity(
+            characterCode = "gu_chen",
             nickname = "小明",
             interests = "[\"游戏\"]",
             affectionLevel = 50,
         )
-        whenever(userProfileDao.get()).doReturn(profile)
+        whenever(userProfileDao.getByCharacter("gu_chen")).doReturn(profile)
         whenever(profileExtractor.parseJsonArray("[\"游戏\"]")).doReturn(listOf("游戏"))
 
         val events = listOf(
@@ -68,7 +69,7 @@ class MemoryManagerTest {
     @Test
     fun `buildSnapshot handles empty database gracefully`() = runTest {
         whenever(chatMessageDao.queryRecentByCharacter("gu_chen", 20)).doReturn(flowOf(emptyList()))
-        whenever(userProfileDao.get()).doReturn(null)
+        whenever(userProfileDao.getByCharacter("gu_chen")).doReturn(null)
         whenever(keyEventDao.queryByCharacter("gu_chen", 10)).doReturn(flowOf(emptyList()))
 
         val snapshot = manager.buildSnapshot("gu_chen")
@@ -80,7 +81,7 @@ class MemoryManagerTest {
 
     @Test
     fun `processAfterMessage persists both messages and updates profile`() = runTest {
-        whenever(userProfileDao.get()).doReturn(null)
+        whenever(userProfileDao.getByCharacter("gu_chen")).doReturn(null)
         whenever(userProfileDao.insertOrUpdate(any())).doReturn(Unit)
         whenever(chatMessageDao.insert(any())).doReturn(0L)
         whenever(profileExtractor.extract("我叫小明")).doReturn(ProfileExtraction(nickname = "小明"))
@@ -99,7 +100,7 @@ class MemoryManagerTest {
 
     @Test
     fun `processAfterMessage extracts and saves key event`() = runTest {
-        whenever(userProfileDao.get()).doReturn(null)
+        whenever(userProfileDao.getByCharacter("gu_chen")).doReturn(null)
         whenever(userProfileDao.insertOrUpdate(any())).doReturn(Unit)
         whenever(chatMessageDao.insert(any())).doReturn(0L)
         whenever(keyEventDao.insert(any())).doReturn(0L)

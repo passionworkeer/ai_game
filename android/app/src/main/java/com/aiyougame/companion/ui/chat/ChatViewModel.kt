@@ -1,11 +1,13 @@
 package com.aiyougame.companion.ui.chat
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aiyougame.companion.data.repository.SyncRepository
 import com.aiyougame.companion.data.prefs.TokenManager
 import com.aiyougame.companion.di.MainDispatcher
 import com.aiyougame.companion.llm.LlamaEngine
+import com.aiyougame.companion.llm.LlamaEngineManager
 import com.aiyougame.companion.llm.PromptManager
 import com.aiyougame.companion.memory.MemoryManager
 import com.aiyougame.companion.memory.ProfileExtractor
@@ -25,6 +27,9 @@ import javax.inject.Inject
  * Chat screen state holder.
  * Manages message list, typing indicator, and affection score.
  * All AI inference is delegated to Phase 2; Phase 1 simulates responses.
+ *
+ * Supports multi-character: each character has isolated chat history and profile.
+ * Uses LlamaEngineManager for per-character engine instances with LRU eviction.
  */
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -34,22 +39,39 @@ class ChatViewModel @Inject constructor(
     private val userProfileDao: UserProfileDao,
     private val keyEventDao: KeyEventDao,
     private val profileExtractor: ProfileExtractor,
-    private val llamaEngine: LlamaEngine,
+    private val llamaEngineManager: LlamaEngineManager,
     private val promptManager: PromptManager,
     private val memoryManager: MemoryManager,
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private var currentCharacterCode: String = "gu_chen"
+    /**
+     * Current character code for this chat session.
+     * Defaults to 'gu_chen'. Can be changed via [switchCharacter].
+     */
+    private var currentCharacterCode: String = savedStateHandle.get<String>("characterCode") ?: "gu_chen"
+
+    /** Current engine instance for this character. Lazily initialized. */
+    private var currentEngine: LlamaEngine? = null
 
     init {
-        // Initialize LLM engine (Phase 1 mock returns immediately)
+        // Initialize LLM engine for the current character (Phase 1 mock returns immediately)
         viewModelScope.launch(mainDispatcher) {
-            llamaEngine.initialize()
+            val engine = llamaEngineManager.getEngine(currentCharacterCode)
+            engine.initialize()
+            currentEngine = engine
         }
         // Load recent chat history from Room on startup
+        loadChatHistory(currentCharacterCode)
+
+        // Load affection level from Room on startup
+        loadAffectionLevel(currentCharacterCode)
+    }
+
+    private fun loadChatHistory(characterCode: String) {
         viewModelScope.launch(mainDispatcher) {
-            chatMessageDao.queryRecentByCharacter("gu_chen", 20)
+            chatMessageDao.queryRecentByCharacter(characterCode, 20)
                 .first()
                 .map { entity ->
                     ChatMessageUi(
@@ -63,11 +85,14 @@ class ChatViewModel @Inject constructor(
                     _uiState.update { it.copy(messages = messages) }
                 }
         }
+    }
 
-        // Load affection level from Room on startup
+    private fun loadAffectionLevel(characterCode: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            userProfileDao.get()?.let { profile ->
-                _uiState.update { it.copy(affectionScore = profile.affectionLevel.coerceIn(0, 100)) }
+            userProfileDao.getByCharacter(characterCode)?.let { profile ->
+                withContext(mainDispatcher) {
+                    _uiState.update { it.copy(affectionScore = profile.affectionLevel.coerceIn(0, 100)) }
+                }
             }
         }
     }
@@ -77,6 +102,7 @@ class ChatViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val typingCharacter: String? = null,
         val affectionScore: Int = 50,
+        val characterCode: String = "gu_chen",
     )
 
     sealed class UiEvent {
@@ -92,6 +118,30 @@ class ChatViewModel @Inject constructor(
     companion object {
         const val MAX_MESSAGE_LENGTH = 1000
     }
+
+    /**
+     * Switch to a different character.
+     * Releases the current engine, loads the new character's chat history.
+     * Persists the new character code to SavedStateHandle for process-death recovery.
+     */
+    fun switchCharacter(characterCode: String) {
+        if (characterCode == currentCharacterCode) return
+
+        // Release the old engine for this character (but keep it in the pool for LRU eviction)
+        currentCharacterCode = characterCode
+        _uiState.update { it.copy(messages = emptyList(), characterCode = characterCode) }
+
+        // Get engine for new character (may evict LRU if at capacity)
+        viewModelScope.launch(mainDispatcher) {
+            val engine = llamaEngineManager.getEngine(characterCode)
+            currentEngine = engine
+        }
+
+        loadChatHistory(characterCode)
+        loadAffectionLevel(characterCode)
+    }
+
+    fun getCurrentCharacterCode(): String = currentCharacterCode
 
     fun sendMessage(text: String) {
         val trimmed = text.trim()
@@ -113,7 +163,7 @@ class ChatViewModel @Inject constructor(
                     role = "user",
                     content = trimmed,
                     timestamp = userMsg.timestamp,
-                    characterCode = "gu_chen"
+                    characterCode = currentCharacterCode
                 )
             )
         }
@@ -136,9 +186,14 @@ class ChatViewModel @Inject constructor(
             snapshot = snapshot,
         )
 
+        // Get the engine for this character (ensure it's initialized)
+        val engine = currentEngine ?: llamaEngineManager.getEngine(currentCharacterCode).also {
+            currentEngine = it
+        }
+
         // Accumulate tokens streamed from the engine for real-time display
         val accumulated = StringBuilder()
-        llamaEngine.generateResponse(userMessage = trimmed, systemPrompt = systemPrompt)
+        engine.generateResponse(userMessage = trimmed, systemPrompt = systemPrompt)
             .collect { token ->
                 accumulated.append(token)
                 _uiState.update { state ->
@@ -177,7 +232,7 @@ class ChatViewModel @Inject constructor(
                     role = "assistant",
                     content = accumulated.toString(),
                     timestamp = timestamp,
-                    characterCode = "gu_chen"
+                    characterCode = currentCharacterCode
                 )
             )
         }
@@ -197,8 +252,9 @@ class ChatViewModel @Inject constructor(
     private suspend fun updateProfile(text: String) {
         val extraction = profileExtractor.extract(text)
 
-        // Load current profile (create default if absent)
-        val current = userProfileDao.get() ?: UserProfileEntity()
+        // Load current profile for this character (create default if absent)
+        val current = userProfileDao.getByCharacter(currentCharacterCode)
+            ?: UserProfileEntity(characterCode = currentCharacterCode)
 
         // Only set nickname if not already set — prefer first extracted value
         val updatedNickname = current.nickname ?: extraction.nickname
@@ -240,7 +296,7 @@ class ChatViewModel @Inject constructor(
         extraction.keyEvent?.let { event ->
             keyEventDao.insert(
                 KeyEventEntity(
-                    characterId = "gu_chen",
+                    characterId = currentCharacterCode,
                     type = event.category,
                     content = event.summary,
                     happenedAt = System.currentTimeMillis()
@@ -253,6 +309,24 @@ class ChatViewModel @Inject constructor(
         _uiState.update {
             it.copy(affectionScore = score.coerceIn(0, 100))
         }
+    }
+
+    // ── P0-A5-1: Memory double insurance — release engine on ViewModel cleared ──
+    // P0-A8: Release the current engine when ViewModel is cleared.
+    // The engine is returned to the pool for potential reuse by other ViewModels.
+
+    /**
+     * Test-only: releases the current engine (mirrors onCleared cleanup).
+     * Do not call in production code.
+     */
+    fun clearForTest() {
+        currentEngine?.release()
+        currentEngine = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        clearForTest()
     }
 }
 

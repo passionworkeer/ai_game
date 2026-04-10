@@ -57,8 +57,8 @@ class MemoryManager @Inject constructor(
                 .first()
 
             val layer1 = buildRecentContext(recentMessages)
-            val layer2 = buildUserProfile()
-            val layer3 = buildKeyEvents()
+            val layer2 = buildUserProfile(characterCode)
+            val layer3 = buildKeyEvents(characterCode)
 
             MemorySnapshot(
                 recentContext = layer1,
@@ -99,7 +99,7 @@ class MemoryManager @Inject constructor(
 
         // Layer 2: extract + update profile
         val extraction = profileExtractor.extract(userMsg)
-        val current = userProfileDao.get() ?: UserProfileEntity()
+        val current = userProfileDao.getByCharacter(characterCode) ?: UserProfileEntity(characterCode = characterCode)
 
         val updatedNickname = current.nickname ?: extraction.nickname
 
@@ -151,8 +151,8 @@ class MemoryManager @Inject constructor(
         }
     }
 
-    private suspend fun buildUserProfile(): String {
-        val profile = userProfileDao.get() ?: return "（暂无用户画像）"
+    private suspend fun buildUserProfile(characterCode: String): String {
+        val profile = userProfileDao.getByCharacter(characterCode) ?: return "（暂无用户画像）"
 
         val parts = mutableListOf<String>()
         profile.nickname?.let { parts.add("昵称：$it") }
@@ -166,8 +166,8 @@ class MemoryManager @Inject constructor(
         return if (parts.isEmpty()) "（暂无用户画像）" else parts.joinToString("\n")
     }
 
-    private suspend fun buildKeyEvents(): String {
-        val events = keyEventDao.queryByCharacter("gu_chen", 10).first()
+    private suspend fun buildKeyEvents(characterCode: String): String {
+        val events = keyEventDao.queryByCharacter(characterCode, 10).first()
         if (events.isEmpty()) return "（暂无关键事件）"
         return events.joinToString("\n") { event ->
             "[${event.type}] ${event.content}"

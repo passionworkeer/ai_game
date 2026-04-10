@@ -18,11 +18,18 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object LlamaModule {
 
-    // LlamaEngineImpl is @Singleton @Inject — Hilt provides it automatically.
-    // This method binds the interface to the implementation.
+    // LlamaEngineImpl instances are managed by LlamaEngineManager (not Hilt-provided as singleton).
+    // LlamaEngineManager uses Provider<LlamaEngineImpl> to create new instances.
+
     @Provides
     @Singleton
     fun provideLlamaEngine(impl: LlamaEngineImpl): LlamaEngine = impl
+
+    @Provides
+    @Singleton
+    fun provideChatTemplateLoader(
+        @ApplicationContext context: Context,
+    ): ChatTemplateLoader = ChatTemplateLoaderImpl(context)
 
     @Provides
     @Singleton
@@ -30,10 +37,4 @@ object LlamaModule {
         @ApplicationContext context: Context,
         @Named("download") okHttpClient: OkHttpClient,
     ): ModelDownloader = ModelDownloaderImpl(context, okHttpClient)
-
-    @Provides
-    @Singleton
-    fun provideChatTemplateLoader(
-        @ApplicationContext context: Context,
-    ): ChatTemplateLoader = ChatTemplateLoaderImpl(context)
 }

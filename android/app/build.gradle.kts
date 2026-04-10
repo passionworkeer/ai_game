@@ -92,6 +92,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // Hilt
@@ -122,6 +123,7 @@ dependencies {
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("androidx.room:room-testing:2.5.2")
     testImplementation("androidx.test.ext:junit:1.1.5")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("org.robolectric:robolectric:4.12.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
