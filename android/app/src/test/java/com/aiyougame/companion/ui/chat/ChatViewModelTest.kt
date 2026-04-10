@@ -3,10 +3,17 @@ package com.aiyougame.companion.ui.chat
 import com.aiyougame.companion.data.repository.SyncRepository
 import com.aiyougame.companion.data.prefs.TokenManager
 import com.aiyougame.companion.di.MainDispatcher
+import com.aiyougame.companion.llm.LlamaEngine
+import com.aiyougame.companion.memory.ProfileExtractor
+import com.aiyougame.companion.memory.db.ChatMessageDao
+import com.aiyougame.companion.memory.db.KeyEventDao
+import com.aiyougame.companion.memory.db.UserProfileDao
 import io.mockk.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.Before
 import org.junit.After
@@ -22,6 +29,11 @@ class ChatViewModelTest {
 
     private lateinit var syncRepository: SyncRepository
     private lateinit var tokenManager: TokenManager
+    private lateinit var chatMessageDao: ChatMessageDao
+    private lateinit var userProfileDao: UserProfileDao
+    private lateinit var keyEventDao: KeyEventDao
+    private lateinit var profileExtractor: ProfileExtractor
+    private lateinit var llamaEngine: LlamaEngine
 
     private lateinit var viewModel: ChatViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -31,7 +43,32 @@ class ChatViewModelTest {
         Dispatchers.setMain(testDispatcher)
         syncRepository = mockk()
         tokenManager = mockk()
-        viewModel = ChatViewModel(syncRepository, tokenManager, testDispatcher)
+        chatMessageDao = mockk()
+        userProfileDao = mockk()
+        keyEventDao = mockk()
+        profileExtractor = ProfileExtractor()
+        every { chatMessageDao.queryRecentByCharacter(any(), any()) } returns flowOf(emptyList())
+        coEvery { chatMessageDao.insert(any()) } returns 1L
+        coEvery { userProfileDao.get() } returns null
+        coEvery { userProfileDao.insertOrUpdate(any()) } returns Unit
+        coEvery { keyEventDao.insert(any()) } returns 0L
+
+        llamaEngine = mockk()
+        coEvery { llamaEngine.initialize() } returns Result.success(Unit)
+        every { llamaEngine.generateResponse(any(), any()) } answers {
+            flow { emit("收到啦～谢谢你跟我说这些") }
+        }
+
+        viewModel = ChatViewModel(
+            syncRepository,
+            tokenManager,
+            chatMessageDao,
+            userProfileDao,
+            keyEventDao,
+            profileExtractor,
+            llamaEngine,
+            testDispatcher
+        )
     }
 
     @After
@@ -92,9 +129,7 @@ class ChatViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        // After simulateModelResponse completes, typingCharacter should be null
         assertNull(state.typingCharacter)
-        // Model should have appended a response
         assertTrue(state.messages.any { !it.isFromUser })
     }
 
