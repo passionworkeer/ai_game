@@ -20,16 +20,7 @@ object LlamaModule {
 
     @Provides
     @Singleton
-    fun provideLlamaEngine(impl: LlamaEngineImpl): LlamaEngine = impl
-
-    @Provides
-    @Singleton
-    fun provideModelCdnUrl(): String =
-        "https://cdn.aiyougame.com/models/gemma-4-E4B-it-Q4_0.gguf"
-
-    @Provides
-    @Singleton
-    fun provideModelFileName(): String = "gemma-4-E4B-it-Q4_0.gguf"
+    fun provideLlamaEngine(): LlamaEngine = MockLlamaEngine()
 
     @Provides
     @Singleton
@@ -37,16 +28,6 @@ object LlamaModule {
         @ApplicationContext context: Context,
         @Named("download") okHttpClient: OkHttpClient,
     ): ModelDownloader = ModelDownloaderImpl(context, okHttpClient)
-
-    @Provides
-    @Singleton
-    fun provideModelDownloadManager(
-        @ApplicationContext context: Context,
-        @Named("download") okHttpClient: OkHttpClient,
-    ): ModelDownloadManager = ModelDownloadManager(
-        context = context,
-        okHttpClient = okHttpClient,
-    )
 
     @Provides
     @Singleton
