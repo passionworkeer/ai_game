@@ -163,12 +163,23 @@ ai_game/
 
 ---
 
+## 环境限制
+
+### 禁止使用 WSL
+- **禁止安装或依赖 WSL**（Windows Subsystem for Linux）
+- 所有命令必须使用 Windows 原生工具链（PowerShell / Git Bash / CMD）
+- Docker Desktop for Windows 在 WSL2 模式下可以运行，但 agent 不得主动触发 WSL 安装
+- 后端/数据库操作：直接用 `docker` 命令或 `docker-compose`，不通过 WSL 间接调用
+
+---
+
 ## 执行原则
 
 1. **小步快跑**：每个任务单独测试后再提交
 2. **有结果再说**：没验证不汇报"完成了"
 3. **不问我**：执行过程中有疑问先尝试解决，解决不了再问
 4. **先读文档**：涉及接口/架构问题时，先查 `docs/` 中的对应文档
+5. **Windows 原生优先**：所有脚本和命令必须能在 Windows 环境下直接运行，不依赖 WSL
 
 ---
 

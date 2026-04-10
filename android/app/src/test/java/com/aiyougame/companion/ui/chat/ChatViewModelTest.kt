@@ -4,16 +4,13 @@ import com.aiyougame.companion.data.repository.SyncRepository
 import com.aiyougame.companion.data.prefs.TokenManager
 import com.aiyougame.companion.di.MainDispatcher
 import io.mockk.*
-import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.junit.jupiter.api.Assertions.*
+import org.junit.Before
+import org.junit.After
+import kotlin.test.*
 import kotlinx.coroutines.test.advanceUntilIdle
 
 /**
@@ -21,24 +18,23 @@ import kotlinx.coroutines.test.advanceUntilIdle
  * Following CLAUDE.md principles: immutable state updates, small focused tests.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@ExtendWith(MockKExtension::class)
 class ChatViewModelTest {
 
-    @MockK private lateinit var syncRepository: SyncRepository
-    @MockK private lateinit var tokenManager: TokenManager
+    private lateinit var syncRepository: SyncRepository
+    private lateinit var tokenManager: TokenManager
 
     private lateinit var viewModel: ChatViewModel
     private val testDispatcher = StandardTestDispatcher()
 
-    @BeforeEach
+    @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        MockKAnnotations.init(this)
-        // ViewModel uses @MainDispatcher which is resolved from Dispatchers.Main (our testDispatcher)
+        syncRepository = mockk()
+        tokenManager = mockk()
         viewModel = ChatViewModel(syncRepository, tokenManager, testDispatcher)
     }
 
-    @AfterEach
+    @After
     fun teardown() {
         Dispatchers.resetMain()
     }
@@ -134,6 +130,6 @@ class ChatViewModelTest {
 
         val messages = viewModel.uiState.value.messages.filter { it.isFromUser }
         val ids = messages.map { it.id }
-        assertEquals(ids.size, ids.distinct().size, "All message IDs should be unique")
+        assertEquals(ids.size, ids.distinct().size)
     }
 }

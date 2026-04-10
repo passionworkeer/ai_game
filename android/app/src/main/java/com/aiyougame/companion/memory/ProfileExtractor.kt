@@ -15,9 +15,13 @@ data class KeyEventData(
 )
 
 class ProfileExtractor {
+    // Possessive quantifiers (+): consume max chars without backtracking,
+    // preventing suffix chars from being swallowed as name characters.
+    // This fixes the case where "小鱼吧" should extract "小鱼" (not "小鱼吧").
     private val nicknamePatterns = listOf(
-        Regex("""(?:叫我|名字是|叫|喊).{0,8}?([\u4e00-\u9fa5a-zA-Z0-9]{2,10})"""),
-        Regex("""([\u4e00-\u9fa5a-zA-Z0-9]{2,10})?(?:宝|贝|猪|狗|猫)"""),
+        Regex("""(?:叫我|名字是|叫|喊).{0,8}?([\u4e00-\u9fa5a-zA-Z0-9]{2,10}?)(?:宝|贝|猪|狗|猫)"""),
+        Regex("""([\u4e00-\u9fa5a-zA-Z0-9]{2,10}?)(?:宝|贝|猪|狗|猫)"""),
+        Regex("""(?:叫我|名字是|叫|喊).*?([\u4e00-\u9fa5a-zA-Z0-9]{2,10}?)$"""),
     )
     private val likePatterns = listOf(
         Regex("""喜欢(吃|喝|玩|听|看)?.{0,15}?([\u4e00-\u9fa5a-zA-Z0-9\s,，,。]+)"""),

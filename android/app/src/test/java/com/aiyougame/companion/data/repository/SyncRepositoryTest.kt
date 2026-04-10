@@ -3,22 +3,29 @@ package com.aiyougame.companion.data.repository
 import com.aiyougame.companion.data.api.AiyougameApi
 import com.aiyougame.companion.data.model.*
 import com.aiyougame.companion.data.prefs.TokenManager
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
-import org.mockito.kotlin.*
+import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertTrue
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /**
  * TDD RED: SyncRepository tests — define the contract for profile sync.
  */
 class SyncRepositoryTest {
 
-    private val mockApi = mock<AiyougameApi>()
-    private val mockTokenManager = mock<TokenManager>()
+    private lateinit var mockApi: AiyougameApi
+    private lateinit var mockTokenManager: TokenManager
 
-    private val repository = SyncRepository(mockApi, mockTokenManager)
+    private lateinit var repository: SyncRepository
+
+    @Before
+    fun setup() {
+        mockApi = mockk()
+        mockTokenManager = mockk()
+        repository = SyncRepository(mockApi, mockTokenManager)
+    }
 
     @Test
     fun `getProfile returns success when logged in`() = runTest {
@@ -38,9 +45,10 @@ class SyncRepositoryTest {
             updatedAt = 1710100000000L
         )
 
-        whenever(mockTokenManager.getUserId()).thenReturn(userId)
-        whenever(mockApi.getSyncProfile(userId))
-            .thenReturn(ApiResponse(success = true, data = expectedResponse, error = null))
+        every { mockTokenManager.getUserId() } returns userId
+        coEvery { mockApi.getSyncProfile(userId) } returns ApiResponse(
+            success = true, data = expectedResponse, error = null
+        )
 
         val result = repository.getProfile()
 
@@ -52,23 +60,22 @@ class SyncRepositoryTest {
 
     @Test
     fun `getProfile returns failure when not logged in`() = runTest {
-        whenever(mockTokenManager.getUserId()).thenReturn(null)
+        every { mockTokenManager.getUserId() } returns null
 
         val result = repository.getProfile()
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("未登录") == true)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Not logged in") == true)
     }
 
     @Test
     fun `getProfile returns failure when API returns error`() = runTest {
-        whenever(mockTokenManager.getUserId()).thenReturn("user-123")
-        whenever(mockApi.getSyncProfile("user-123"))
-            .thenReturn(ApiResponse(
-                success = false,
-                data = null,
-                error = ApiError(code = "SYNC_001", message = "Profile not found")
-            ))
+        every { mockTokenManager.getUserId() } returns "user-123"
+        coEvery { mockApi.getSyncProfile("user-123") } returns ApiResponse(
+            success = false,
+            data = null,
+            error = ApiError(code = "SYNC_001", message = "Profile not found")
+        )
 
         val result = repository.getProfile()
 
@@ -79,28 +86,29 @@ class SyncRepositoryTest {
     @Test
     fun `updateProfile returns success with updated data`() = runTest {
         val userId = "user-123"
-        val request = SyncProfileRequest(
-            nickname = "NewNick",
-            profileJson = ProfileJson(
-                likes = listOf("coding"),
-                dislikes = null,
-                currentMood = "excited",
-                importantDates = null
-            )
+        every { mockTokenManager.getUserId() } returns userId
+        coEvery { mockApi.updateSyncProfile(eq(userId), any()) } returns ApiResponse(
+            success = true,
+            data = SyncProfileResponse(
+                nickname = "NewNick",
+                profileJson = ProfileJson(
+                    likes = listOf("coding"),
+                    dislikes = null,
+                    currentMood = "excited",
+                    importantDates = null
+                ),
+                keyEvents = emptyList(),
+                updatedAt = System.currentTimeMillis()
+            ),
+            error = null
         )
 
-        val expectedResponse = SyncProfileResponse(
-            nickname = "NewNick",
-            profileJson = request.profileJson!!,
-            keyEvents = emptyList(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        whenever(mockTokenManager.getUserId()).thenReturn(userId)
-        whenever(mockApi.updateSyncProfile(eq(userId), any()))
-            .thenReturn(ApiResponse(success = true, data = expectedResponse, error = null))
-
-        val result = repository.updateProfile("NewNick", request.profileJson)
+        val result = repository.updateProfile("NewNick", ProfileJson(
+            likes = listOf("coding"),
+            dislikes = null,
+            currentMood = "excited",
+            importantDates = null
+        ))
 
         assertTrue(result.isSuccess)
         assertEquals("NewNick", result.getOrNull()?.nickname)
@@ -109,19 +117,18 @@ class SyncRepositoryTest {
 
     @Test
     fun `updateProfile returns failure when not logged in`() = runTest {
-        whenever(mockTokenManager.getUserId()).thenReturn(null)
+        every { mockTokenManager.getUserId() } returns null
 
         val result = repository.updateProfile("NewNick", null)
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("未登录") == true)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Not logged in") == true)
     }
 
     @Test
     fun `updateProfile returns failure when API throws`() = runTest {
-        whenever(mockTokenManager.getUserId()).thenReturn("user-123")
-        whenever(mockApi.updateSyncProfile(eq("user-123"), any()))
-            .thenThrow(RuntimeException("Server error 500"))
+        every { mockTokenManager.getUserId() } returns "user-123"
+        coEvery { mockApi.updateSyncProfile(eq("user-123"), any()) } throws RuntimeException("Server error 500")
 
         val result = repository.updateProfile("NewNick", null)
 
@@ -132,18 +139,17 @@ class SyncRepositoryTest {
     @Test
     fun `updateProfile passes null nickname and profileJson gracefully`() = runTest {
         val userId = "user-123"
-        val request = SyncProfileRequest(nickname = null, profileJson = null)
-
-        val expectedResponse = SyncProfileResponse(
-            nickname = "ExistingNick",
-            profileJson = ProfileJson(null, null, null, null),
-            keyEvents = emptyList(),
-            updatedAt = System.currentTimeMillis()
+        every { mockTokenManager.getUserId() } returns userId
+        coEvery { mockApi.updateSyncProfile(eq(userId), any()) } returns ApiResponse(
+            success = true,
+            data = SyncProfileResponse(
+                nickname = "ExistingNick",
+                profileJson = ProfileJson(null, null, null, null),
+                keyEvents = emptyList(),
+                updatedAt = System.currentTimeMillis()
+            ),
+            error = null
         )
-
-        whenever(mockTokenManager.getUserId()).thenReturn(userId)
-        whenever(mockApi.updateSyncProfile(eq(userId), any()))
-            .thenReturn(ApiResponse(success = true, data = expectedResponse, error = null))
 
         val result = repository.updateProfile(null, null)
 

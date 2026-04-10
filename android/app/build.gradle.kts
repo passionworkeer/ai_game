@@ -56,14 +56,6 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    
-    // Phase 1 : CMake binding prepare (dummy path)
-    // externalNativeBuild {
-    //    cmake {
-    //        path = file("src/main/cpp/CMakeLists.txt")
-    //        version = "3.22.1"
-    //    }
-    //}
 }
 
 dependencies {
@@ -99,10 +91,10 @@ dependencies {
     
     // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testImplementation("io.mockk:mockk:1.13.9")
-    testImplementation("io.assertk:assertk:0.27.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
