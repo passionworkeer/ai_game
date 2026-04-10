@@ -5,16 +5,21 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
 /**
- * IntimacyPromptLoader 单元测试 — 纯 JVM，无需 Android 模拟器。
+ * IntimacyPromptLoader 单元测试 — 使用 Robolectric 提供 Android 运行时。
  *
  * 测试范围：
  * - IntimacyLevel.from() 边界覆盖（10 个 case）
  * - IntimacyPromptLoader.load() 文件名构造、文件存在/不存在行为
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class IntimacyPromptLoaderTest {
 
     private val mockAssets: android.content.res.AssetManager = mockk(relaxed = true)
