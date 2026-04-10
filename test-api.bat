@@ -35,14 +35,22 @@ echo.
 for /f "delims=" %%i in ('curl -s -X POST "%BASE_URL%/auth/device" -H "Content-Type: application/json" -d "{\"deviceId\":\"%DEVICE_ID%\",\"clientVersion\":\"1.0.0\",\"platform\":\"android\"}"') do set "AUTH_RESP=%%i"
 echo 响应: !AUTH_RESP!
 
-REM 提取 token
+REM 提取 token 和 userId
 for /f "tokens=2 delims=:," %%a in ('echo !AUTH_RESP! ^| findstr /C:"\"token\""') do set "TOKEN=%%a"
 set "TOKEN=!TOKEN:~1,-2!"
+
+for /f "tokens=2 delims=:," %%a in ('echo !AUTH_RESP! ^| findstr /C:"\"userId\""') do set "USER_ID=%%a"
+set "USER_ID=!USER_ID:~1,-2!"
+
 if "!TOKEN!"=="" (
     echo [错误] 未获取到 token
     exit /b 1
 )
-echo Token: !TOKEN:~0,20!...
+if "!USER_ID!"=="" (
+    echo [错误] 未获取到 userId
+    exit /b 1
+)
+echo Token: !TOKEN:~0,20!...  UserId: !USER_ID!
 echo [PASS] B-2-6 通过
 echo.
 
@@ -159,12 +167,12 @@ echo ============================================
 echo B-5-6: GET /sync/:userId — 拉取云端备份
 echo ============================================
 echo 请求:
-curl -s -X GET "%BASE_URL%/sync/!CHAR_ID!" -H "Authorization: Bearer !TOKEN!"
+curl -s -X GET "%BASE_URL%/sync/!USER_ID!" -H "Authorization: Bearer !TOKEN!"
 echo.
 echo.
 
 set "SYNC_GET_RESP="
-for /f "delims=" %%i in ('curl -s -X GET "%BASE_URL%/sync/!CHAR_ID!" -H "Authorization: Bearer !TOKEN!"') do set "SYNC_GET_RESP=%%i"
+for /f "delims=" %%i in ('curl -s -X GET "%BASE_URL%/sync/!USER_ID!" -H "Authorization: Bearer !TOKEN!"') do set "SYNC_GET_RESP=%%i"
 echo 响应: !SYNC_GET_RESP!
 echo !SYNC_GET_RESP! | findstr /C:"\"nickname\"" >nul
 if errorlevel 1 (
@@ -181,7 +189,7 @@ echo ============================================
 echo B-5-7: POST /sync/:userId — 上报本地记忆
 echo ============================================
 echo 请求:
-curl -s -X POST "%BASE_URL%/sync/!CHAR_ID!" ^
+curl -s -X POST "%BASE_URL%/sync/!USER_ID!" ^
   -H "Authorization: Bearer !TOKEN!" ^
   -H "Content-Type: application/json" ^
   -d "{\"nickname\":\"小鱼\",\"profileJson\":{\"likes\":[\"奶茶\",\"猫\"],\"dislikes\":[\"香菜\"],\"currentMood\":\"happy\",\"importantDates\":{\"birthday\":\"0312\"}}}"
@@ -189,7 +197,7 @@ echo.
 echo.
 
 set "SYNC_POST_RESP="
-for /f "delims=" %%i in ('curl -s -X POST "%BASE_URL%/sync/!CHAR_ID!" -H "Authorization: Bearer !TOKEN!" -H "Content-Type: application/json" -d "{\"nickname\":\"小鱼\",\"profileJson\":{\"likes\":[\"奶茶\",\"猫\"],\"dislikes\":[\"香菜\"],\"currentMood\":\"happy\",\"importantDates\":{\"birthday\":\"0312\"}}}"') do set "SYNC_POST_RESP=%%i"
+for /f "delims=" %%i in ('curl -s -X POST "%BASE_URL%/sync/!USER_ID!" -H "Authorization: Bearer !TOKEN!" -H "Content-Type: application/json" -d "{\"nickname\":\"小鱼\",\"profileJson\":{\"likes\":[\"奶茶\",\"猫\"],\"dislikes\":[\"香菜\"],\"currentMood\":\"happy\",\"importantDates\":{\"birthday\":\"0312\"}}}"') do set "SYNC_POST_RESP=%%i"
 echo 响应: !SYNC_POST_RESP!
 echo !SYNC_POST_RESP! | findstr /C:"\"updatedAt\"" >nul
 if errorlevel 1 (
