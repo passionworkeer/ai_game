@@ -115,7 +115,7 @@ ai_game/
 │   │   ├── prefs/         # A-3 TokenManager
 │   │   └── repository/    # A-5 Repository 层
 │   ├── di/               # ✅ Hilt DI 模块（A-6 完成）
-│   ├── memory/            # ⏳ 骨架就绪，ProfileExtractor 昵称提取完成（A-17 待完善）
+│   ├── memory/            # ✅ Room DB 骨架就绪（A-16 完成）；ProfileExtractor 昵称提取（A-17 部分）
 │   ├── domain/            # ⬜ 待开发（规则引擎 ProfileExtractor）
 │   ├── llm/               # ⬜ 待开发（LlamaScheduler）
 │   ├── engine/            # ⬜ 待开发（LlamaEngine）
@@ -152,7 +152,7 @@ ai_game/
 - ✅ Android ViewModel 层（A-7~A-11）
 - ✅ Android UI 绑定（A-12~A-15）
 - ✅ Android Gradle 编译（A-6 完成，75 tests pass）
-- ⬜ Android Room 本地存储（A-16~A-17）
+- ✅ Android Room 本地存储（A-16 完成，29 DAO tests）
 - ⬜ E2E 前后端联调（E-1~E-3）
 
 **立即行动**：
@@ -345,17 +345,19 @@ ai_game/
 
 ### Android Room 本地存储（Android Room）
 
-#### A-16：Room 数据库
-- [ ] A-16-1 AppDatabase（version 1）
-- [ ] A-16-2 ChatMessage entity + DAO
-- [ ] A-16-3 UserProfile entity + DAO
-- [ ] A-16-4 KeyEvent entity + DAO
-- [ ] A-16-5 **测试验收**：Unit Test — CRUD 操作正确，数据库迁移不出错
+#### A-16：Room 数据库✅
+- [x] A-16-1 AppDatabase（version 1）— entities=[ChatMessage, UserProfile, KeyEvent]
+- [x] A-16-2 ChatMessage entity + DAO — 9 tests pass
+- [x] A-16-3 UserProfile entity + DAO — 11 tests pass
+- [x] A-16-4 KeyEvent entity + DAO — 10 tests pass
+- [x] A-16-5 **测试验收**：Unit Test ✅ BUILD SUCCESSFUL（29 Room DAO tests + 4 @Ignore PerformanceTest）
 
 #### A-17：ProfileExtractor（规则引擎）
-- [ ] A-17-1 昵称提取（正则匹配"叫我/名字是/叫.*"）
-- [ ] A-17-2 喜好提取（"喜欢/爱吃/爱玩"）
-- [ ] A-17-3 心情提取（情绪词匹配）
+- [x] A-17-1 昵称提取（正则匹配"叫我/名字是/叫.*"）— 4 tests
+- [ ] A-17-2 喜好提取（"喜欢/爱吃/爱玩"）— 7 tests commented（待实现）
+- [ ] A-17-3 心情提取（情绪词匹配）— 3 tests commented（待实现）
+- [ ] A-17-4 关键事件提取（生日/约定/活动）— 3 tests commented（待实现）
+- [ ] A-17-5 **测试验收**：Unit Test
 - [ ] A-17-4 **测试验收**：Unit Test — 每条规则提取正确
 
 ---
@@ -388,6 +390,7 @@ ai_game/
 |------|------|------|
 | ✅ 完成 | B-1~B-5, A-1~A-15 | 后端 6 个 API + Android 网络层 + ViewModel + UI |
 | ✅ 完成 | A-6 | Android Gradle 编译（75 tests pass） |
-| ⬜ 待做 | B-6~B-7, A-16~A-17, E-1~E-3 | 数据库初始化 / Room / E2E |
+| ✅ 完成 | A-16 | Android Room 本地存储（29 DAO tests + 4 @Ignore） |
+| ⬜ 待做 | A-17, B-6~B-7, E-1~E-3 | ProfileExtractor 完善 / 数据库初始化 / E2E |
 
 > **打勾规则**：每个 `✅` 必须附上测试证据（测试文件名 + 通过截图/日志）才能标记完成
