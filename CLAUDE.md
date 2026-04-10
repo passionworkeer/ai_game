@@ -151,8 +151,9 @@ ai_game/
 - ✅ Android 网络层 + Repository（A-1~A-5）
 - ✅ Android ViewModel 层（A-7~A-11）
 - ✅ Android UI 绑定（A-12~A-15）
-- ✅ Android Gradle 编译（A-6 完成，104 tests pass）
-- ✅ Android Room 本地存储（A-16~A-17 完成，104 tests pass）
+- ✅ Android Gradle 编译（A-6 完成，Android 测试 BUILD SUCCESSFUL）
+- ✅ Android Room 本地存储（A-16~A-17 完成，测试全部通过）
+- ✅ ProfileExtractor 补完（A-17 18 tests pass，likes/dislikes/mood/keyEvent 全实现）
 - ✅ E2E 文档就绪（E-2 隐私合规 + E-3 性能基准）
 - ⬜ E2E 前后端联调（E-1，待启动后端验证）
 
@@ -358,10 +359,10 @@ ai_game/
 
 #### A-17：ProfileExtractor（规则引擎）✅
 - [x] A-17-1 昵称提取（正则匹配"叫我/名字是/叫.*"）— 4 tests
-- [x] A-17-2 喜好提取（"喜欢/爱吃/爱玩"）— 3 tests ✅ ProfileExtractorTest 7 tests pass
-- [x] A-17-3 心情提取（情绪词匹配）— 3 tests ✅ 同上
-- [x] A-17-4 关键事件提取（生日/约定/活动）— 已实现
-- [x] A-17-5 **测试验收**：Unit Test ✅ ProfileExtractorTest 7/7 pass
+- [x] A-17-2 喜好提取（"喜欢/爱吃/爱玩"）— 3 tests ✅
+- [x] A-17-3 心情提取（情绪词匹配）— 3 tests ✅
+- [x] A-17-4 关键事件提取（生日/约定/活动）— 3 tests ✅
+- [x] A-17-5 **测试验收**：Unit Test ✅ ProfileExtractorTest 18/18 pass
 
 ---
 
@@ -392,8 +393,8 @@ ai_game/
 | 状态 | 数量 | 说明 |
 |------|------|------|
 | ✅ 完成 | B-1~B-7 | 后端 6 个 API + 数据库初始化 + API 测试脚本 |
-| ✅ 完成 | A-1~A-17 | Android 网络层 + ViewModel + UI + Room + ProfileExtractor（104 tests pass）|
+| ✅ 完成 | A-1~A-17 | Android 网络层 + ViewModel + UI + Room + ProfileExtractor（测试全通过）|
 | ✅ 完成 | E-2, E-3 | 隐私合规文档 + 性能基准文档 |
-| ✅ 完成 | E-1 | E2E 前后端联调（Jest 69 测试 + curl 验证 SQLite 开发模式）|
+| ⬜ 待手动 | E-1 | mitmproxy 抓包验证（无法自动化）|
 
 > **打勾规则**：每个 `✅` 必须附上测试证据（测试文件名 + 通过截图/日志）才能标记完成
