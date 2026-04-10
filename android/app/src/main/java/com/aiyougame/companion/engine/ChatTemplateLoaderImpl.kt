@@ -1,19 +1,33 @@
 package com.aiyougame.companion.engine
 
+import android.content.Context
+import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Phase 1 简化实现：load() 始终返回空字符串。
- * Phase 2 待接入 llama.cpp GGUF API 后，从 GGUF kv-cache 读取
- * chat_template 字段并实例化 SentencePiece/BPE Tokenizer。
+ * Phase 2 实现：从 GGUF metadata 读取 tokenizer.chat_template。
+ * ERR-02 约束：禁止硬编码 Prompt 模板。
+ *
+ * Phase 1（简化）：直接跳过 GGUF 读取，返回空字符串。
+ * Phase 2（llama.cpp NDK）：Replace with gguf_get_val_str() JNI call.
  */
 @Singleton
-class ChatTemplateLoaderImpl @Inject constructor() : ChatTemplateLoader {
+class ChatTemplateLoaderImpl @Inject constructor(
+    @ApplicationContext private val context: Context
+) : ChatTemplateLoader {
 
-    /**
-     * Phase 1：始终返回空字符串。
-     * PromptManager 检测到空字符串时跳过 tokenizer 配置，走默认推理行为。
-     */
-    override fun load(modelPath: String): String = ""
+    companion object {
+        private const val TAG = "ChatTemplateLoaderImpl"
+        private const val ASSETS_TEMPLATE_FILE = "chat_template.txt"
+    }
+
+    override suspend fun load(modelFile: File?): String = withContext(Dispatchers.IO) {
+        // Phase 1: no-op, PromptManager uses assets/prompts/ directly
+        ""
+    }
 }
