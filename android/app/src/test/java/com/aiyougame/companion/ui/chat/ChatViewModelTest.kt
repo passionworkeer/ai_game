@@ -53,7 +53,8 @@ class ChatViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         syncRepository = mockk()
-        tokenManager = mockk()
+        tokenManager = mockk(relaxed = true)
+        every { tokenManager.getSelectedCharacter() } returns null
         chatMessageDao = mockk()
         userProfileDao = mockk()
         keyEventDao = mockk()
@@ -74,7 +75,7 @@ class ChatViewModelTest {
 
         // Mock LlamaEngineManager to return our mock engine
         llamaEngineManager = mockk(relaxed = true)
-        coEvery { llamaEngineManager.getEngine(any()) } returns mockEngine as com.aiyougame.companion.llm.LlamaEngineImpl
+        coEvery { llamaEngineManager.getEngine(any()) } coAnswers { mockEngine }
 
         promptManager = mockk(relaxed = true)
         memoryManager = mockk(relaxed = true)
