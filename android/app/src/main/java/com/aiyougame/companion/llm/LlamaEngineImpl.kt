@@ -49,12 +49,20 @@ class LlamaEngineImpl @Inject constructor(
     private val mock: MockLlamaEngine = MockLlamaEngine()
 
     init {
-        try {
-            System.loadLibrary("llama_jni")
-            Log.d(TAG, "Native library loaded")
-        } catch (e: UnsatisfiedLinkError) {
-            Log.w(TAG, "Native unavailable: ${e.message}")
-        }
+        // NOTE: Native library loading is intentionally NOT done here.
+        // Loading in init{} makes exceptions uncatchable when Hilt constructs this singleton,
+        // causing SIGABRT on emulators with ABI mismatches or JNI signature errors.
+        // Lazy loading (on first generateResponse call) lets us catch and fall back to mock.
+        Log.d(TAG, "LlamaEngineImpl created (native library will load lazily)")
+    }
+
+    /** Loads the native JNI library once, throws on failure so callers can fall back to mock. */
+    @Synchronized
+    private fun ensureNativeLoaded(): Long {
+        if (nativePtr != 0L) return nativePtr
+        System.loadLibrary("llama_jni")
+        nativePtr = nativeInitEngine(modelPath)
+        return nativePtr
     }
 
     override suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
