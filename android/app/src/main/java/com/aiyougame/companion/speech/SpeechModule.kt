@@ -1,19 +1,18 @@
 package com.aiyougame.companion.speech
 
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
+/**
+ * Hilt module for speech recognition components.
+ *
+ * All speech components ([AudioRecorder], [WhisperEngine], [VoiceRecognitionManager])
+ * use `@Inject` constructors with Hilt-provided dependencies, so no explicit
+ * `@Provides` methods are needed here.
+ *
+ * The `@Named("download") OkHttpClient` is provided by [com.aiyougame.companion.data.network.NetworkModule].
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-object SpeechModule {
-
-    // AudioRecorder, WhisperEngine, and VoiceRecognitionManager all have @Inject constructors
-    // with Hilt-provided dependencies. Hilt injects them automatically.
-    // Only provide SpeechToTextEngine interface (implemented by WhisperEngine)
-    @Provides
-    @Singleton
-    fun provideSpeechToTextEngine(whisperEngine: WhisperEngine): SpeechToTextEngine = whisperEngine
-}
+object SpeechModule

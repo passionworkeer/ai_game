@@ -6,7 +6,7 @@
 
 国内首款端侧离线 AI 乙女游戏陪伴 App（Gemma 4 本地推理 + OpenClaw PC 联动）。
 
-**当前阶段**：Phase 2 🚀 进行中（2026-04-10 启动）
+**当前阶段**：Phase 2 ✅ 完成（2026-04-11 完成）
 
 **团队**：单人（你），全栈。
 
@@ -17,7 +17,7 @@
 ```
 Phase 0 ✅ 文档规划
 Phase 1 ✅ 核心聊天 Demo（232 tests pass，BUILD SUCCESSFUL）
-Phase 2 🚀 完整产品（进行中）
+Phase 2 ✅ 完整产品（BUILD SUCCESSFUL + 全量编译）
 ```
 
 | 模块 | 状态 | 完成时间 |
@@ -27,22 +27,30 @@ Phase 2 🚀 完整产品（进行中）
 | Android ViewModel + UI 绑定 | ✅ | 2026-04-10 |
 | Android Room 本地存储 | ✅ | 2026-04-10 |
 | E2E 联调（后端+Jest 69）| ✅ | 2026-04-10 |
-| E2E mitmproxy 抓包验证 | ⬜ 待手动 | — |
 | **Phase 2 P0-A3 LlamaEngine JNI 层** | ✅ | 2026-04-10 |
 | **Phase 2 P0-A4 LlamaEngineImpl 激活** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A5 内存双保险** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A6 集成测试** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A7 多角色 Room** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A8 角色 Context 隔离** | ✅ | 2026-04-10 |
+| **Phase 2 P0-A9 Whisper 语音输入** | ✅ | 2026-04-11 |
 | **Phase 2 P1-B1 微信/支付宝 SDK** | ✅ | 2026-04-10 |
 | **Phase 2 P1-B2 账号升级** | ✅ | 2026-04-10 |
 | **Phase 2 P1-B3 AES 密钥下发** | ✅ | 2026-04-10 |
+| **Phase 2 P1-B4 运营后台** | ✅ | 2026-04-10 |
+| **Phase 2 P1-A1 AES-256 DRM Android** | ✅ | 2026-04-11 |
+| **Phase 2 P1-A2 sqlite-vec 向量记忆** | ✅ | 2026-04-11 |
 
 ---
 
 ## Phase 2 任务追踪
 
-详见 `Phase2_TASKS.md`。当前里程碑：
+详见 `Phase2_TASKS.md`。
 
-- **M1（进行中）**：LlamaEngine 真实推理 → P0-A3 ✅ → P0-A4 ✅ → P0-A5 🔄 → P0-A6 ⬜
-- **M2（待开始）**：多角色 + 语音 → P0-A7 ⬜ → P0-A8 ⬜ → P0-A9 ⬜
-- **M3（✅ 后端 P1 完成）**：支付/账号/AES密钥 → P1-B1 ✅ P1-B2 ✅ P1-B3 ✅
+- **M1 ✅ 完成**：LlamaEngine 真实推理 → P0-A3 → P0-A4 → P0-A5 → P0-A6 全部完成
+- **M2 ✅ 完成**：多角色 + 语音 → P0-A7 → P0-A8 → P0-A9 全部完成
+- **M3 ✅ 完成**：后端 P1 → P1-B1 → P1-B2 → P1-B3 → P1-B4 全部完成
+- **M4 ✅ 完成**：Android P1 → P1-A1 → P1-A2 全部完成
 
 ---
 

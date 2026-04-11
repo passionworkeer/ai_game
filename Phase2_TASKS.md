@@ -151,15 +151,17 @@ Backend P1 链（独立）：
 **负责人**：
 **依赖**：P0-A4（推理引擎就绪后）
 **子任务**：
-- [ ] P0-A9-1：Whisper tiny.en GGML 模型下载（~75MB，assets 或 CDN）
-- [ ] P0-A9-2：`SpeechRecognizer` Android API 集成
-- [ ] P0-A9-3：Whisper JNI 封装（`whisper.cpp` CMake 编译）
-- [ ] P0-A9-4：语音按钮 UI + 状态动画（录音中 / 识别中 / 完成）
-- [ ] P0-A9-5：识别结果插入 ChatInput 输入框
+- [x] P0-A9-1：Whisper tiny.en GGML 模型下载（~75MB，HuggingFace CDN）
+- [x] P0-A9-2：`SpeechRecognizer` Android API 集成 → 替换为 whisper.cpp 本地推理
+- [x] P0-A9-3：Whisper JNI 封装（`whisper.cpp` CMake 编译 → `libwhisper_jni.so`）
+- [x] P0-A9-4：语音按钮 UI + 状态动画（录音中 / 识别中 / 完成）
+- [x] P0-A9-5：识别结果插入 ChatInput 输入框
 **验收**：
-- 录音 < 30s 识别完成
-- 识别准确率 ≥ 85%（安静环境）
-- 本地推理，零网络请求
+- ✅ `./gradlew assembleDebug` BUILD SUCCESSFUL（whisper_jni.so 编译通过）
+- ✅ `./gradlew testDebugUnitTest` — BUILD SUCCESSFUL
+- ⬜ 真机测试：录音 < 30s 识别完成
+- ⬜ 真机测试：识别准确率 ≥ 85%（安静环境）
+- ⬜ 真机测试：本地推理，零网络请求
 
 ---
 

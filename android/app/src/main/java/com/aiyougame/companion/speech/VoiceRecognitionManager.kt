@@ -16,7 +16,7 @@ import javax.inject.Singleton
  * States:
  * - [Idle] — ready to record
  * - [Recording] — actively recording audio
- * - [Recognizing] — transcribing audio with Whisper
+ * - [Recognizing] — downloading model / transcribing with Whisper
  * - [Done] — transcription complete with result text
  * - [Error] — transcription failed
  */
@@ -95,10 +95,19 @@ class VoiceRecognitionManager @Inject constructor(
             return
         }
 
-        // Start transcription
+        // Start transcription — ensure Whisper is initialized first
         _state.value = State.Recognizing()
 
         CoroutineScope(Dispatchers.IO).launch {
+            // Initialize Whisper engine if not yet ready (triggers model download on first use)
+            if (!whisperEngine.isReady()) {
+                val initResult = whisperEngine.initialize()
+                if (initResult.isFailure) {
+                    _state.value = State.Error("语音模型初始化失败: ${initResult.exceptionOrNull()?.message}")
+                    return@launch
+                }
+            }
+
             val result = whisperEngine.transcribe(filePath)
 
             if (result.isSuccess) {
