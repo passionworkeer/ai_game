@@ -32,6 +32,7 @@ export interface JwtPayload {
   deviceId?: string; // 设备匿名时有值
   phone?: string;    // 手机登录时有值
   appleId?: string;  // Apple 登录时有值
+  role?: string;    // admin | user (JWT 签名中可选)
   iat?: number;
   exp?: number;
 }
@@ -42,4 +43,6 @@ export interface CurrentUserPayload {
   deviceId: string;
   phone?: string;
   appleId?: string;
+  role?: string;
+  isBanned?: boolean;
 }

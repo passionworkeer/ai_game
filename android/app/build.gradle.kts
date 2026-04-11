@@ -9,6 +9,7 @@ plugins {
 // when generated dirs are locked or partially deleted by clean runs.
 ksp {
     arg("ksp.incremental", "false")
+    arg("room.schemaLocation", "$projectDir/schemas")
     // Also pass as task arguments as fallback
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         kotlinOptions {
@@ -112,6 +113,9 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Security: EncryptedSharedPreferences for AES key storage
+    implementation("androidx.security:security-crypto:1.1.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

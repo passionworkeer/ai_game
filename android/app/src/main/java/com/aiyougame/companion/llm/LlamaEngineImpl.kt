@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * LlamaEngine implementation for local GGUF inference.
- * NOT @Singleton — multiple instances can exist (one per character) managed by LlamaEngineManager.
- * Hilt provides dependencies via constructor injection.
+ * Hilt manages this as a Singleton; [LlamaEngineManager] uses Provider<LlamaEngineImpl>
+ * to create multiple instances on demand (one per character).
+ * Memory is freed via [LlamaEngineManager.release] and [LlamaEngineManager.releaseAll].
  */
+@Singleton
 class LlamaEngineImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val modelDownloader: ModelDownloader,

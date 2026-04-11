@@ -42,7 +42,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    // 日志：仅记录请求路径和方法，不泄露敏感信息
     this.logger.error(
       `${request.method} ${request.url} -> ${status} [${code}] ${message}`,
     );
@@ -62,6 +61,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return ErrorCodes.VALIDATION_ERROR;
       case 401:
         return ErrorCodes.UNAUTHORIZED;
+      case 403:
+        return 'FORBIDDEN';
       case 404:
         return ErrorCodes.CHARACTER_NOT_FOUND;
       case 409:

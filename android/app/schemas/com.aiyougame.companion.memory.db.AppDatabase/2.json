@@ -1,0 +1,231 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "41109ccee22e3166711aef169119a4a6",
+    "entities": [
+      {
+        "tableName": "chat_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`msgId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `role` TEXT NOT NULL, `content` TEXT NOT NULL, `timestamp` INTEGER, `isSent` INTEGER NOT NULL, `isSummarized` INTEGER NOT NULL, `characterCode` TEXT NOT NULL, `userId` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "msgId",
+            "columnName": "msgId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isSent",
+            "columnName": "isSent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSummarized",
+            "columnName": "isSummarized",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "characterCode",
+            "columnName": "characterCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "msgId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_chat_history_userId_characterCode",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "characterCode"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chat_history_userId_characterCode` ON `${TABLE_NAME}` (`userId`, `characterCode`)"
+          },
+          {
+            "name": "index_chat_history_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chat_history_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "user_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `characterCode` TEXT NOT NULL, `nickname` TEXT, `gender` TEXT, `age` INTEGER, `interests` TEXT NOT NULL, `moodLogs` TEXT NOT NULL, `affectionLevel` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`, `characterCode`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "characterCode",
+            "columnName": "characterCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nickname",
+            "columnName": "nickname",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "gender",
+            "columnName": "gender",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "age",
+            "columnName": "age",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "interests",
+            "columnName": "interests",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "moodLogs",
+            "columnName": "moodLogs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "affectionLevel",
+            "columnName": "affectionLevel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id",
+            "characterCode"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_user_profile_id_characterCode",
+            "unique": true,
+            "columnNames": [
+              "id",
+              "characterCode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_user_profile_id_characterCode` ON `${TABLE_NAME}` (`id`, `characterCode`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "key_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `characterId` TEXT NOT NULL, `type` TEXT NOT NULL, `content` TEXT NOT NULL, `happenedAt` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "characterId",
+            "columnName": "characterId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "happenedAt",
+            "columnName": "happenedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_key_events_characterId_happenedAt",
+            "unique": false,
+            "columnNames": [
+              "characterId",
+              "happenedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_key_events_characterId_happenedAt` ON `${TABLE_NAME}` (`characterId`, `happenedAt`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '41109ccee22e3166711aef169119a4a6')"
+    ]
+  }
+}
