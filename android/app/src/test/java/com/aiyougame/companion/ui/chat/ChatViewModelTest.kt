@@ -44,6 +44,7 @@ class ChatViewModelTest {
     private lateinit var promptManager: PromptManager
     private lateinit var memoryManager: MemoryManager
     private lateinit var savedStateHandle: SavedStateHandle
+    private lateinit var voiceRecognitionManager: com.aiyougame.companion.speech.VoiceRecognitionManager
 
     private lateinit var viewModel: ChatViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -77,16 +78,17 @@ class ChatViewModelTest {
 
         promptManager = mockk(relaxed = true)
         memoryManager = mockk(relaxed = true)
-        savedStateHandle = mockk(relaxed = true)
-        // Explicitly return null for SavedStateHandle.get<String> to avoid MockK
-        // relaxed mode returning Object instead of null (generic inline method issue)
-        every { savedStateHandle.get<String>(any()) } returns null
         coEvery { memoryManager.buildSnapshot(any()) } returns MemoryManager.MemorySnapshot(
             recentContext = "（暂无对话历史）",
             userProfile = "（暂无用户画像）",
             keyEvents = "（暂无关键事件）",
         )
         every { promptManager.buildSystemPrompt(any(), any(), any()) } returns "Mock System Prompt"
+
+        savedStateHandle = mockk(relaxed = true)
+        every { savedStateHandle.get<String>(any()) } returns null
+
+        voiceRecognitionManager = mockk(relaxed = true)
 
         viewModel = ChatViewModel(
             syncRepository,
@@ -98,6 +100,7 @@ class ChatViewModelTest {
             llamaEngineManager,
             promptManager,
             memoryManager,
+            voiceRecognitionManager,
             testDispatcher,
             savedStateHandle,
         )
