@@ -2,14 +2,15 @@ package com.aiyougame.companion.ui.characters
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
@@ -29,6 +30,7 @@ import com.aiyougame.companion.data.model.CharacterDto
 fun CharacterSelectScreen(
     viewModel: CharacterSelectViewModel = hiltViewModel(),
     onCharacterSelected: (characterCode: String) -> Unit,
+    onNavigateToPurchase: (characterId: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -42,6 +44,26 @@ fun CharacterSelectScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
+                        )
+                    }
+                },
+                actions = {
+                    // Shopping cart: navigate to purchase screen
+                    IconButton(onClick = { onNavigateToPurchase("ade85259-2bd0-44e9-a27b-2c7fdb460524") }) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "购买角色",
+                            tint = Color(0xFF07C160)
+                        )
+                    }
+                    // Debug shortcut: directly enter chat (skip character selection)
+                    // TODO: Remove before production release
+                    @Suppress("DEPRECATION")
+                    IconButton(onClick = { onCharacterSelected("gu_chen") }) {
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "进入聊天",
+                            tint = Color(0xFF07C160)
                         )
                     }
                 }
@@ -86,7 +108,10 @@ fun CharacterSelectScreen(
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             }
-                            items(state.ownedCharacters) { character ->
+                            items(
+                            items = state.ownedCharacters,
+                            key = { it.id }
+                        ) { character ->
                                 CharacterCard(
                                     character = character,
                                     isOwned = true,
@@ -107,11 +132,14 @@ fun CharacterSelectScreen(
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             }
-                            items(state.unlockedCharacters) { character ->
+                            items(
+                            items = state.unlockedCharacters,
+                            key = { it.id }
+                        ) { character ->
                                 CharacterCard(
                                     character = character,
                                     isOwned = false,
-                                    onClick = { }
+                                    onClick = { onNavigateToPurchase(character.id) }
                                 )
                             }
                         }
@@ -130,14 +158,14 @@ private fun CharacterCard(
 ) {
     val borderColor = if (isOwned) Color(0xFFE1BEE7) else Color.Gray
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = isOwned) { onClick() },
+    // Use Surface with onClick instead of Card to ensure reliable tap response
+    // with Android emulator `input tap` command inside LazyColumn.
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOwned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
-        )
+        color = if (isOwned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
@@ -160,7 +188,7 @@ private fun CharacterCard(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = character.name,
@@ -189,6 +217,28 @@ private fun CharacterCard(
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // Use IconButton explicitly for maximum tap reliability with input tap
+                if (isOwned) {
+                    FilledTonalButton(
+                        onClick = onClick,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("开始聊天", fontSize = 13.sp)
+                    }
+                } else {
+                    Button(
+                        onClick = onClick,
+                        modifier = Modifier.height(32.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF07C160)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("购买", fontSize = 13.sp)
                     }
                 }
             }

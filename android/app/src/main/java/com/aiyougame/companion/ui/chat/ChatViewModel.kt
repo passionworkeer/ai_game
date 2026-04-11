@@ -55,9 +55,13 @@ class ChatViewModel @Inject constructor(
 
     /**
      * Current character code for this chat session.
-     * Defaults to 'gu_chen'. Can be changed via [switchCharacter].
+     * Reads from TokenManager (persisted selection) or falls back to 'gu_chen'.
+     * Can be changed via [switchCharacter].
      */
-    private var currentCharacterCode: String = savedStateHandle.get<String>("characterCode") ?: "gu_chen"
+    private var currentCharacterCode: String =
+        savedStateHandle.get<String>("characterCode")
+            ?: tokenManager.getSelectedCharacter()
+            ?: "gu_chen"
 
     /** Current engine instance for this character. Lazily initialized. */
     private var currentEngine: LlamaEngine? = null

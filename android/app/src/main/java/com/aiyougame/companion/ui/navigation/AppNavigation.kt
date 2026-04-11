@@ -40,10 +40,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         composable(Screen.CharacterSelect.route) {
             CharacterSelectScreen(
-                onCharacterSelected = { _ ->
+                onCharacterSelected = {
                     navController.navigate(Screen.Chat.route) {
-                        popUpTo(Screen.Loading.route) { inclusive = true }
+                        popUpTo(Screen.CharacterSelect.route) { inclusive = true }
                     }
+                },
+                onNavigateToPurchase = {
+                    navController.navigate(Screen.Purchase.route)
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -52,7 +55,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             ChatScreen(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToPurchase = { navController.navigate(Screen.Purchase.route) }
+                onNavigateToPurchase = { navController.navigate(Screen.Purchase.route) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Profile.route) {
