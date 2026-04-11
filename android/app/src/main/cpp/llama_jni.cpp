@@ -205,6 +205,11 @@ static void JNICALL nativeGenerateStream(JNIEnv* env, jclass, jlong jptr,
 
     jobject callback = env->NewGlobalRef(jCallback);
 
+    // Get JavaVM* from the calling thread's JNIEnv.
+    // This is safe because JNIEnv is thread-local but JavaVM* is global.
+    JavaVM* jvm = nullptr;
+    env->GetJavaVM(&jvm);
+
     {
         std::lock_guard<std::mutex> lg(ctx->mu);
         if (ctx->running) {
@@ -216,18 +221,24 @@ static void JNICALL nativeGenerateStream(JNIEnv* env, jclass, jlong jptr,
         ctx->abort.store(false);
     }
 
-    ctx->worker = new std::thread([env, ctx, prompt, jMaxTokens, callback]() {
-        // Attach this thread to JVM for JNI calls
-        JavaVM* jvm = nullptr;
-        env->GetJavaVM(&jvm);
+    // Capture thread-safe data: JavaVM*, ctx ptr, prompt chars, maxTokens, callback ref.
+    // Do NOT capture 'env' — it is thread-local to the calling thread and invalid here.
+    ctx->worker = new std::thread([jvm, ctx, prompt, jMaxTokens, callback]() {
         JNIEnv* tenv = nullptr;
         bool attached = false;
-        if (jvm->GetEnv((void**)&tenv, JNI_VERSION_1_6) == JNI_EDETACHED) {
-            jvm->AttachCurrentThreadAsDaemon((JNIEnv**)&tenv, nullptr);
+        jint stat = jvm->GetEnv((void**)&tenv, JNI_VERSION_1_6);
+        if (stat == JNI_EDETACHED) {
+            if (jvm->AttachCurrentThreadAsDaemon(&tenv, nullptr) != JNI_OK) {
+                // Failed to attach — cannot make JNI calls, terminate thread safely.
+                LOGE("JNI AttachCurrentThread failed");
+                { std::lock_guard<std::mutex> lg(ctx->mu); ctx->running = false; }
+                return;
+            }
             attached = true;
-        }
-        if (!tenv) { // fallback: use parent env if attach failed
-            tenv = env;
+        } else if (stat != JNI_OK || !tenv) {
+            LOGE("JNI GetEnv returned unexpected status: %d", stat);
+            { std::lock_guard<std::mutex> lg(ctx->mu); ctx->running = false; }
+            return;
         }
 
         jclass  cls      = tenv->GetObjectClass(callback);

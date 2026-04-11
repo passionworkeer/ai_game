@@ -49,24 +49,18 @@ fun ChatScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    // Extract context before remember to avoid composable-call-inside-remember issue
-    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
+    // CRITICAL FIX: Use Hilt-injected VoiceRecognitionManager from ChatViewModel.
+    // Previous manual `remember { VoiceRecognitionManager(...) }` bypassed Hilt DI,
+    // causing native resource leaks and multiple AudioRecord instances.
+    val voiceManager = viewModel.voiceRecognitionManager
 
-    // Voice recognition manager (injected via hiltViewModel or local)
-    val voiceManager = remember {
-        com.aiyougame.companion.speech.VoiceRecognitionManager(
-            com.aiyougame.companion.speech.AudioRecorder(appContext),
-            com.aiyougame.companion.speech.WhisperEngine(appContext)
-        )
-    }
-
-    // Collect voice state
-    LaunchedEffect(Unit) {
-        voiceManager.state.collect { state ->
+    // Collect voice state from the Hilt-managed singleton
+    LaunchedEffect(viewModel) {
+        viewModel.voiceState.collect { state ->
             voiceState = state
-            if (state is VoiceRecognitionManager.State.Done) {
+            if (state is com.aiyougame.companion.speech.VoiceRecognitionManager.State.Done) {
                 inputText = state.text
-                voiceManager.reset()
+                viewModel.voiceRecognitionManager.reset()
             }
         }
     }

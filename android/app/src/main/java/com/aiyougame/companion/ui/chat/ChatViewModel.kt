@@ -21,6 +21,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /**
@@ -42,9 +43,15 @@ class ChatViewModel @Inject constructor(
     private val llamaEngineManager: LlamaEngineManager,
     private val promptManager: PromptManager,
     private val memoryManager: MemoryManager,
+    @JvmField
+    internal val voiceRecognitionManager: com.aiyougame.companion.speech.VoiceRecognitionManager,
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /** Expose voice recognition state so ChatScreen can collect it without manual instantiation. */
+    val voiceState: StateFlow<com.aiyougame.companion.speech.VoiceRecognitionManager.State> =
+        voiceRecognitionManager.state
 
     /**
      * Current character code for this chat session.
@@ -54,6 +61,14 @@ class ChatViewModel @Inject constructor(
 
     /** Current engine instance for this character. Lazily initialized. */
     private var currentEngine: LlamaEngine? = null
+
+    /**
+     * Thread-safe token accumulator for streaming inference.
+     * Key = messageId, Value = accumulated text StringBuilder.
+     * Using ConcurrentHashMap avoids data races between the IO-thread producer
+     * and the Main-thread consumer when multiple messages are in flight.
+     */
+    private val accumulated = ConcurrentHashMap<String, StringBuilder>()
 
     init {
         // Initialize LLM engine for the current character (Phase 1 mock returns immediately)
@@ -192,16 +207,19 @@ class ChatViewModel @Inject constructor(
         }
 
         // Accumulate tokens streamed from the engine for real-time display
-        val accumulated = StringBuilder()
+        // Use ConcurrentHashMap for thread safety between IO-thread producer
+        // and Main-thread UI updates
+        accumulated[messageId] = StringBuilder()
         engine.generateResponse(userMessage = trimmed, systemPrompt = systemPrompt)
             .collect { token ->
-                accumulated.append(token)
+                accumulated.computeIfAbsent(messageId) { StringBuilder() }.append(token)
                 _uiState.update { state ->
                     val replaced = state.messages.toMutableList()
                     val lastIndex = replaced.indexOfLast { !it.isFromUser }
+                    val text = accumulated[messageId]?.toString() ?: ""
                     val partial = ChatMessageUi(
                         id = messageId,
-                        text = accumulated.toString(),
+                        text = text,
                         isFromUser = false,
                         timestamp = timestamp,
                         isTyping = true
@@ -216,6 +234,7 @@ class ChatViewModel @Inject constructor(
             }
 
         // Mark the message as complete (no typing indicator)
+        val finalText = accumulated.remove(messageId)?.toString() ?: ""
         _uiState.update { state ->
             val replaced = state.messages.toMutableList()
             val lastIndex = replaced.indexOfLast { !it.isFromUser }
@@ -230,7 +249,7 @@ class ChatViewModel @Inject constructor(
             chatMessageDao.insert(
                 ChatMessageEntity(
                     role = "assistant",
-                    content = accumulated.toString(),
+                    content = finalText,
                     timestamp = timestamp,
                     characterCode = currentCharacterCode
                 )

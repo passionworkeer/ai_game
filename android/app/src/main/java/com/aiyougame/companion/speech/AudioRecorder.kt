@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -45,6 +47,15 @@ class AudioRecorder @Inject constructor(
     private var audioRecord: AudioRecord? = null
     private var recordingFile: File? = null
     private var isRecording = false
+
+    /**
+     * Guards AudioRecord stop/release between [stopRecording] and [recordToFile] coroutine.
+     * Without this lock, stopRecording() releasing AudioRecord while recordToFile()
+     * is still inside audioRecord?.read() causes IllegalStateException crash.
+     * ReentrantLock.tryLock(timeout, unit) is used here because stopRecording()
+     * is a non-suspending function — kotlinx.coroutines Mutex has no timeout variant.
+     */
+    private val audioMutex = ReentrantLock()
 
     /**
      * Check if RECORD_AUDIO permission is granted.
@@ -124,17 +135,21 @@ class AudioRecorder @Inject constructor(
         }
 
         return try {
+            // Acquire lock to safely stop/release AudioRecord.
+            // The recordToFile coroutine acquires this lock briefly around each read(),
+            // so this will block until the current read() completes.
+            audioMutex.tryLock(5_000L, TimeUnit.MILLISECONDS)
             audioRecord?.stop()
             audioRecord?.release()
             audioRecord = null
             isRecording = false
+            audioMutex.unlock()
 
-            // The WAV file header will be written during the recording loop
-            // by writeWavHeader() - here we just finalize
             Log.d(TAG, "Recording stopped: $recordingPath")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop recording", e)
+            if (audioMutex.isHeldByCurrentThread) audioMutex.unlock()
             audioRecord?.release()
             audioRecord = null
             isRecording = false
@@ -186,12 +201,23 @@ class AudioRecorder @Inject constructor(
                     break
                 }
 
-                val readCount = audioRecord?.read(buffer, 0, bufferSize) ?: 0
-                if (readCount > 0) {
-                    // Convert shorts to bytes (little-endian)
-                    ByteBuffer.wrap(byteBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer, 0, readCount)
-                    fos.write(byteBuffer, 0, readCount * 2)
-                    totalBytesWritten += readCount * 2
+                // Acquire lock briefly around read() to avoid racing with stopRecording().
+                // This ensures stopRecording() cannot call stop()/release() while we are
+                // inside read(), preventing the IllegalStateException crash.
+                run lock@ {
+                    audioMutex.lock()
+                    try {
+                        if (!isRecording) return@lock
+                        val readCount = audioRecord?.read(buffer, 0, bufferSize) ?: 0
+                        if (readCount > 0) {
+                            // Convert shorts to bytes (little-endian)
+                            ByteBuffer.wrap(byteBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer, 0, readCount)
+                            fos.write(byteBuffer, 0, readCount * 2)
+                            totalBytesWritten += readCount * 2
+                        }
+                    } finally {
+                        audioMutex.unlock()
+                    }
                 }
             }
 

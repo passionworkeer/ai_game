@@ -30,7 +30,10 @@ class LlamaEngineImpl @Inject constructor(
     companion object {
         private const val TAG = "LlamaEngineImpl"
         private const val CDN_URL = "https://cdn.aiyougame.com/models/gemma-4-E4B-it-Q4_0.gguf"
-        private const val MODEL_SHA256 = ""
+        // TODO: Fill with actual SHA-256 of the GGUF file before production.
+        // Empty string disables SHA-256 validation (any existing file passes isModelReady).
+        // Generate with: sha256sum gemma-4-E4B-it-Q4_0.gguf
+        private const val MODEL_SHA256 = "" // e.g. "a3f8b2c1d4e5f6..."
         private const val MAX_TOKENS = 256
         private const val POLL_MS = 50L
     }
