@@ -1,7 +1,7 @@
 package com.aiyougame.companion.data.network
 
 import com.aiyougame.companion.data.api.AiyougameApi
-import com.aiyougame.companion.data.prefs.TokenManager
+import com.aiyougame.companion.data.interceptor.AuthInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,21 +25,13 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(tokenManager: TokenManager): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor { chain ->
-                val original = chain.request()
-                val token = tokenManager.getToken()
-                val request = if (token != null) {
-                    original.newBuilder()
-                        .header("Authorization", "Bearer $token")
-                        .header("Content-Type", "application/json")
-                        .build()
-                } else {
-                    original.newBuilder()
-                        .header("Content-Type", "application/json")
-                        .build()
-                }
+                val request = chain.request().newBuilder()
+                    .header("Content-Type", "application/json")
+                    .build()
                 chain.proceed(request)
             }
             .build()

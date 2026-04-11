@@ -23,7 +23,7 @@ class AuthInterceptor @Inject constructor(
         val originalRequest = chain.request()
 
         val token = tokenManager.getToken()
-        if (token == null) {
+        if (token.isNullOrBlank()) {
             // Not authenticated — proceed without auth header (e.g. device register)
             return chain.proceed(originalRequest)
         }
