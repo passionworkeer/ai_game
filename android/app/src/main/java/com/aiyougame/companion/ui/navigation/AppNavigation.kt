@@ -56,6 +56,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToPurchase = { navController.navigate(Screen.Purchase.route) },
+                onNavigateToCharacterSelect = {
+                    navController.navigate(Screen.CharacterSelect.route) {
+                        popUpTo(Screen.Chat.route) { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }

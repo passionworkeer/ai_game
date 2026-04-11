@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Stop
@@ -40,6 +41,7 @@ fun ChatScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToPurchase: () -> Unit,
+    onNavigateToCharacterSelect: () -> Unit,
     onBack: () -> Unit,
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -120,11 +122,14 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToCharacterSelect) {
+                        Icon(Icons.Default.Person, contentDescription = "选择角色", tint = Color(0xFF07C160))
+                    }
                     IconButton(onClick = onNavigateToPurchase) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = "Purchase", tint = Color.Gray)
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "购买角色", tint = Color.Gray)
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.Gray)
+                        Icon(Icons.Default.Settings, contentDescription = "设置", tint = Color.Gray)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF7F7F7))
