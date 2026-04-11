@@ -43,6 +43,22 @@ Phase 2 ✅ 完整产品（BUILD SUCCESSFUL + 全量编译）
 
 ---
 
+## Phase 2 TDD 覆盖率（2026-04-11）
+
+| 模块 | 测试文件 | 用例数 | 状态 |
+|------|---------|--------|------|
+| AdminService | `admin/__tests__/admin.service.test.ts` | 27 | ✅ |
+| DrmService | `drm/__tests__/drm.service.test.ts` | 43 | ✅ |
+| AdminGuard | `admin/__tests__/admin.guard.test.ts` | 6 | ✅ |
+| VectorMemoryManager | `memory/vec/VectorMemoryManagerTest.kt` | 12 | ✅ |
+| VoiceRecognitionManager | `speech/VoiceRecognitionManagerTest.kt` | 14 | ✅ |
+
+**Phase 2 补充测试后：**
+- 后端：145 passed（含 AdminService 27 + DrmService 43 + AdminGuard 6）
+- Android：全部 BUILD SUCCESSFUL
+
+---
+
 ## Phase 2 任务追踪
 
 详见 `Phase2_TASKS.md`。
@@ -177,13 +193,41 @@ ai_game/
 - ✅ E2E 文档就绪（E-2 隐私合规 + E-3 性能基准）
 - ✅ E2E 前后端联调（Jest 69 passed + curl 验证通过，mitmproxy 抓包待手动）
 
-**立即行动**：
+**下一步：真机演示（手机跑 Gemma 4）**
+1. 运行 `install-ndk.bat` 安装 Android NDK（一次性）
+2. 运行 `phone-demo-setup.bat` 一键编译 + 打包
+3. 运行 `serve-model.bat` 启动本机模型服务器
+4. 修改 `LlamaEngineImpl.kt` 的 CDN_URL 为本机 IP，重打包
+5. `adb install` 安装 APK → 手机本地跑推理
 1. 初始化后端（无需 Docker）：`cd backend && npx prisma db push && npx prisma db seed`
 2. 启动后端：`cd backend && node dist/main.js`（或 `npm run start:dev`）
 3. API 测试：`bash test-api.bat`（或手动 curl 测试）
 4. 编译 Android：`cd android && ./gradlew assembleDebug`
 
 > **数据库说明**：本地开发用 SQLite（`backend/prisma/dev.db`），生产环境切换 PostgreSQL（`docker-compose.yml` 已就绪）。切换时改 `backend/prisma/schema.prisma` provider 并更新 `migration_lock.toml`。
+
+---
+
+## 真机演示（手机跑 Gemma 4 本地推理）
+
+详见 `PHONE_DEMO_GUIDE.md`。快速入口：
+
+```bash
+# 一键编译 + 打包 + 推送（需先装 NDK）
+phone-demo-setup.bat
+
+# 启动本机模型服务器（手机从电脑下载 4.6GB 模型，不走 CDN）
+serve-model.bat
+
+# 编译原生库（llama_jni.so + whisper_jni.so，需 NDK）
+build-native.bat
+```
+
+**当前模型：**
+- GGUF: `gemma-4-E4B-it-Q4_0.gguf` (4.6 GB) — ✅ 有效（GGUF v3，SHA-256: `7c6dec4f...`）
+- SHA-256 已写入 `LlamaEngineImpl.kt`，下载后自动校验
+
+**APK 路径：** `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
