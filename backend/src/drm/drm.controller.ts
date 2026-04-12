@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, HttpCode, HttpStatus, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DrmService } from './drm.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -27,11 +27,11 @@ export class DrmController {
     });
 
     if (!purchase || purchase.userId !== user.userId) {
-      return { success: false, error: { code: 'UNAUTHORIZED', message: '无权访问该密钥' } };
+      throw new ForbiddenException({ code: 'UNAUTHORIZED', message: '无权访问该密钥' });
     }
 
     if (!purchase.encryptedAesKey) {
-      return { success: false, error: { code: 'KEY_NOT_FOUND', message: '密钥不存在，请先生成' } };
+      throw new NotFoundException({ code: 'KEY_NOT_FOUND', message: '密钥不存在，请先生成' });
     }
 
     return {
