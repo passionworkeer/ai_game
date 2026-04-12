@@ -92,6 +92,7 @@ export class AuthController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     const result = await this.authService.mergeDeviceToPhone(
+      user.userId,
       dto.deviceId,
       dto.targetType,
     );

@@ -41,7 +41,9 @@ class AuthRepository @Inject constructor(
                 )
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.error?.message ?: "Device registration failed"))
+                // SECURITY: Never surface raw server error messages to the UI
+                // (could contain internal paths, stack traces, or sensitive DB info)
+                Result.failure(Exception("设备注册失败，请稍后重试"))
             }
         } catch (e: Exception) {
             Result.failure(e)

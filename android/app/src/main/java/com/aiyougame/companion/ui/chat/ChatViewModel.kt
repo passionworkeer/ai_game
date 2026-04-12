@@ -349,6 +349,7 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        voiceRecognitionManager.destroy()  // Cancel all pending coroutines in VoiceRecognitionManager
         clearForTest()
     }
 }

@@ -60,7 +60,8 @@ class AuthRepositoryTest {
         val result = authRepository.registerDevice("bad-device", "1.0.0", "android")
 
         assertTrue(result.isFailure)
-        assertEquals("Invalid device ID", result.exceptionOrNull()?.message)
+        // SECURITY: error message is sanitized — raw server message never surfaces to UI
+        assertEquals("设备注册失败，请稍后重试", result.exceptionOrNull()?.message)
     }
 
     @Test

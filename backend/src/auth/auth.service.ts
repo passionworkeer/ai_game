@@ -96,7 +96,15 @@ export class AuthService {
    * P1-B2: 账号迁移（设备匿名账号 → 正式账号）
    * 将设备匿名账号的 data 合并到正式账号
    */
+  /**
+   * P1-B2: 账号迁移（设备匿名账号 → 正式账号）
+   * 将设备匿名账号的 data 合并到正式账号
+   * @param currentUserId JWT 中的当前用户 ID（已登录的正式账号）
+   * @param deviceId 要合并的源设备匿名账号的 deviceId
+   * @param targetType 'phone' | 'apple'
+   */
   async mergeDeviceToPhone(
+    currentUserId: string,
     deviceId: string,
     targetType: 'phone' | 'apple',
   ): Promise<{
@@ -104,16 +112,23 @@ export class AuthService {
     purchaseCount: number;
     profileJson: string;
   }> {
-    // 查找目标正式账号
-    const targetField = targetType === 'phone' ? 'phone' : 'appleId';
-    // 从 JWT 获取当前用户 ID
+    // P0 SECURITY: IDOR prevention — JWT 用户必须拥有该 deviceId 对应的账号
     const sourceUser = await this.prisma.user.findUnique({
-      where: { deviceId },
+      where: { id: currentUserId },
+      select: { id: true, deviceId: true, profileJson: true },
     });
 
     if (!sourceUser) {
-      throw new Error('源设备账号不存在');
+      throw new Error('当前账号不存在');
     }
+
+    // 验证 JWT 用户拥有该设备账号（防止冒用他人设备账号）
+    if (sourceUser.deviceId !== deviceId) {
+      throw new Error('无权迁移该设备账号');
+    }
+
+    // 查找目标正式账号
+    const targetField = targetType === 'phone' ? 'phone' : 'appleId';
 
     // 查找已关联该 phone/appleId 的正式账号
     const targetUser = await this.prisma.user.findFirst({

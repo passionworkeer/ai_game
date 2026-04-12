@@ -46,20 +46,11 @@ class LlamaEngineManager @Inject constructor(
      * native library for the current ABI). This prevents app crashes on unsupported
      * architectures while still allowing full navigation and text-based chat.
      */
-    suspend fun getEngine(characterCode: String): LlamaEngine {
-        // Fast path: engine already exists
-        engines[characterCode]?.let { engine ->
+    suspend fun getEngine(characterCode: String): LlamaEngine = mutex.withLock {
+        // Return cached engine if present
+        engines[characterCode]?.also {
             accessOrder[characterCode] = System.currentTimeMillis()
-            return engine
-        }
-
-        return mutex.withLock {
-            // Double-check after acquiring lock
-            engines[characterCode]?.let { engine ->
-                accessOrder[characterCode] = System.currentTimeMillis()
-                return engine
-            }
-
+        } ?: run {
             // Evict LRU if at capacity
             if (engines.size >= MAX_ENGINES) {
                 val lruCode = findLruCharacter()
@@ -81,7 +72,6 @@ class LlamaEngineManager @Inject constructor(
             val initResult = engine.initialize()
             if (initResult.isFailure) {
                 Log.e(TAG, "Failed to initialize engine for $characterCode: ${initResult.exceptionOrNull()?.message}")
-                // Still use the engine (MockLlamaEngine.initialize() always succeeds)
             }
 
             engines[characterCode] = engine

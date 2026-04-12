@@ -40,6 +40,9 @@ class VoiceRecognitionManager @Inject constructor(
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
+    /** Structured scope — cancelled on [destroy()], preventing orphaned coroutines. */
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     private var recordingJob: Job? = null
 
     /**
@@ -65,10 +68,9 @@ class VoiceRecognitionManager @Inject constructor(
 
         _state.value = State.Recording(filePath)
 
-        // Start recording coroutine
-        recordingJob = CoroutineScope(Dispatchers.IO).launch {
+        // Start recording coroutine — scoped so it is cancelled on [destroy()]
+        recordingJob = scope.launch {
             audioRecorder.recordToFile(filePath) {
-                // Called when max duration is reached
                 stopRecording()
             }
         }
@@ -98,7 +100,7 @@ class VoiceRecognitionManager @Inject constructor(
         // Start transcription — ensure Whisper is initialized first
         _state.value = State.Recognizing()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             // Initialize Whisper engine if not yet ready (triggers model download on first use)
             if (!whisperEngine.isReady()) {
                 val initResult = whisperEngine.initialize()
@@ -151,5 +153,14 @@ class VoiceRecognitionManager @Inject constructor(
      */
     fun getLastText(): String? {
         return (_state.value as? State.Done)?.text
+    }
+
+    /**
+     * Destroy the manager, cancelling all pending coroutines.
+     * Call this from ViewModel.onCleared() or when the manager is no longer needed.
+     */
+    fun destroy() {
+        scope.cancel()
+        Log.d(TAG, "destroyed — all coroutines cancelled")
     }
 }
