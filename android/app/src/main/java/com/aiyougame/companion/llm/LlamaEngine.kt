@@ -24,6 +24,19 @@ interface LlamaEngine {
     fun generateResponse(userMessage: String, systemPrompt: String): Flow<String>
 
     /**
+     * Multimodal (image + text) inference.
+     *
+     * @param rgbImage RGB bytes in row-major order, length = width * height * 3
+     */
+    fun generateResponseWithImage(
+        userMessage: String,
+        systemPrompt: String,
+        rgbImage: ByteArray,
+        width: Int,
+        height: Int,
+    ): Flow<String> = generateResponse(userMessage, systemPrompt)
+
+    /**
      * Release the model and free memory.
      */
     fun release()

@@ -43,6 +43,14 @@ interface ModelDownloader {
     suspend fun download(cdnUrl: String, sha256: String): Result<String>
 
     /**
+     * Download an arbitrary file into `filesDir/models/<fileName>` with SHA-256 verification.
+     *
+     * This is used for multimodal setups where we need both the text GGUF and an `mmproj` GGUF.
+     */
+    suspend fun download(cdnUrl: String, sha256: String, fileName: String): Result<String> =
+        download(cdnUrl, sha256) // default: legacy implementations ignore fileName
+
+    /**
      * Cold Flow of download progress. Emits after each chunk is written.
      * Completes when download finishes (success or failure).
      */
@@ -55,6 +63,11 @@ interface ModelDownloader {
     suspend fun isModelReady(sha256: String): Boolean
 
     /**
+     * Check if a specific file exists and matches SHA-256.
+     */
+    suspend fun isFileReady(fileName: String, sha256: String): Boolean = isModelReady(sha256)
+
+    /**
      * Delete the local model file (for reset / re-download).
      * Safe to call even if file does not exist.
      */
@@ -65,4 +78,9 @@ interface ModelDownloader {
      * Does not check if file exists; use [isModelReady] first.
      */
     fun getModelPath(): String
+
+    /**
+     * Get a local path for a specific file under `filesDir/models/`.
+     */
+    fun getFilePath(fileName: String): String = getModelPath()
 }

@@ -193,6 +193,38 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun sendImageMessage(imageRgb: ByteArray, width: Int, height: Int, caption: String = "请描述这张图片") {
+        if (width <= 0 || height <= 0) return
+        if (imageRgb.size != width * height * 3) return
+
+        val trimmed = caption.trim().ifEmpty { "请描述这张图片" }.take(MAX_MESSAGE_LENGTH)
+
+        val userMsg = ChatMessageUi(
+            id = UUID.randomUUID().toString(),
+            text = "[图片] $trimmed",
+            isFromUser = true,
+            timestamp = System.currentTimeMillis()
+        )
+
+        _uiState.update { it.copy(messages = it.messages + userMsg) }
+
+        // Persist user message to Room on IO thread (store caption only; no image bytes persisted)
+        viewModelScope.launch(Dispatchers.IO) {
+            chatMessageDao.insert(
+                ChatMessageEntity(
+                    role = "user",
+                    content = userMsg.text,
+                    timestamp = userMsg.timestamp,
+                    characterCode = currentCharacterCode
+                )
+            )
+        }
+
+        viewModelScope.launch(context = mainDispatcher, start = CoroutineStart.DEFAULT) {
+            simulateModelResponseWithImage(trimmed, imageRgb, width, height)
+        }
+    }
+
     private suspend fun simulateModelResponse(trimmed: String) {
         _uiState.update { it.copy(typingCharacter = "顾晨") }
 
@@ -263,6 +295,78 @@ class ChatViewModel @Inject constructor(
         // Analyse user profile and update affection score
         viewModelScope.launch(Dispatchers.IO) {
             updateProfile(trimmed)
+        }
+    }
+
+    private suspend fun simulateModelResponseWithImage(
+        trimmed: String,
+        rgb: ByteArray,
+        width: Int,
+        height: Int,
+    ) {
+        _uiState.update { it.copy(typingCharacter = "顾晨") }
+
+        val messageId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+        val snapshot = memoryManager.buildSnapshot(currentCharacterCode)
+        val systemPrompt = promptManager.buildSystemPrompt(
+            characterId = currentCharacterCode,
+            affectionLevel = _uiState.value.affectionScore,
+            snapshot = snapshot,
+        )
+
+        val engine = currentEngine ?: llamaEngineManager.getEngine(currentCharacterCode).also {
+            currentEngine = it
+        }
+
+        accumulated[messageId] = StringBuilder()
+        engine.generateResponseWithImage(
+            userMessage = trimmed,
+            systemPrompt = systemPrompt,
+            rgbImage = rgb,
+            width = width,
+            height = height,
+        ).collect { token ->
+            accumulated.computeIfAbsent(messageId) { StringBuilder() }.append(token)
+            _uiState.update { state ->
+                val replaced = state.messages.toMutableList()
+                val lastIndex = replaced.indexOfLast { !it.isFromUser }
+                val text = accumulated[messageId]?.toString() ?: ""
+                val partial = ChatMessageUi(
+                    id = messageId,
+                    text = text,
+                    isFromUser = false,
+                    timestamp = timestamp,
+                    isTyping = true
+                )
+                if (lastIndex >= 0) {
+                    replaced[lastIndex] = partial
+                } else {
+                    replaced.add(partial)
+                }
+                state.copy(messages = replaced)
+            }
+        }
+
+        val finalText = accumulated.remove(messageId)?.toString() ?: ""
+        _uiState.update { state ->
+            val replaced = state.messages.toMutableList()
+            val lastIndex = replaced.indexOfLast { !it.isFromUser }
+            if (lastIndex >= 0) {
+                replaced[lastIndex] = replaced[lastIndex].copy(isTyping = false)
+            }
+            state.copy(messages = replaced, typingCharacter = null)
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            chatMessageDao.insert(
+                ChatMessageEntity(
+                    role = "assistant",
+                    content = finalText,
+                    timestamp = timestamp,
+                    characterCode = currentCharacterCode
+                )
+            )
         }
     }
 

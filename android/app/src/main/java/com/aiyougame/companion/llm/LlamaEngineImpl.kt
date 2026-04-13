@@ -31,12 +31,15 @@ class LlamaEngineImpl @Inject constructor(
 
     companion object {
         private const val TAG = "LlamaEngineImpl"
-        private const val CDN_URL = "https://cdn.aiyougame.com/models/gemma-4-E4B-it-Q4_0.gguf"
-        // TODO: Fill with actual SHA-256 of the GGUF file before production.
-        // Empty string disables SHA-256 validation (any existing file passes isModelReady).
-        // Generate with: sha256sum gemma-4-E4B-it-Q4_0.gguf
-        // SHA-256 of gemma-4-E4B-it-Q4_0.gguf (computed 2026-04-11)
-        private const val MODEL_SHA256 = "7c6dec4f0480ab4109743ab7cf13c07c850a99a6907c0366fa1678cef377e8ca"
+        // Text model (GGUF)
+        private const val MODEL_FILE = "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
+        private const val MODEL_URL = "https://cdn.aiyougame.com/models/$MODEL_FILE"
+        private const val MODEL_SHA256 = "aa866c1e514468f3d0f33971679d63c11b7c9c47acddd1cc5785fc467e52c21d"
+
+        // Multimodal projector (GGUF) for vision
+        private const val MMPROJ_FILE = "mmproj-Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-f16.gguf"
+        private const val MMPROJ_URL = "https://cdn.aiyougame.com/models/$MMPROJ_FILE"
+        private const val MMPROJ_SHA256 = "628b7e999f89beef70b32396ae84f59c096e867747d7901f0134064ff672e290"
         private const val MAX_TOKENS = 256
         private const val POLL_MS = 50L
     }
@@ -44,6 +47,7 @@ class LlamaEngineImpl @Inject constructor(
     @Volatile private var nativePtr: Long = 0L
     @Volatile private var isInitialized: Boolean = false
     private var modelPath: String = ""
+    private var mmprojPath: String = ""
     private val tokenQueue = ConcurrentLinkedQueue<String>()
     @Volatile private var callbackDone = false
     @Volatile private var callbackError: String? = null
@@ -63,23 +67,32 @@ class LlamaEngineImpl @Inject constructor(
     private fun ensureNativeLoaded(): Long {
         if (nativePtr != 0L) return nativePtr
         System.loadLibrary("llama_jni")
-        nativePtr = nativeInitEngine(modelPath)
+        nativePtr = nativeInitEngine(modelPath, mmprojPath)
         return nativePtr
     }
 
     override suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext Result.success(Unit)
         try {
-            Log.d(TAG, "Checking model...")
-            if (!modelDownloader.isModelReady(MODEL_SHA256)) {
+            Log.d(TAG, "Checking model + mmproj...")
+
+            if (!modelDownloader.isFileReady(MODEL_FILE, MODEL_SHA256)) {
                 Log.d(TAG, "Downloading model...")
-                modelDownloader.download(CDN_URL, MODEL_SHA256)
+                modelDownloader.download(MODEL_URL, MODEL_SHA256, MODEL_FILE)
                     .onFailure { return@withContext Result.failure(it) }
             }
-            modelPath = modelDownloader.getModelPath()
+            if (!modelDownloader.isFileReady(MMPROJ_FILE, MMPROJ_SHA256)) {
+                Log.d(TAG, "Downloading mmproj...")
+                modelDownloader.download(MMPROJ_URL, MMPROJ_SHA256, MMPROJ_FILE)
+                    .onFailure { return@withContext Result.failure(it) }
+            }
+
+            modelPath = modelDownloader.getFilePath(MODEL_FILE)
+            mmprojPath = modelDownloader.getFilePath(MMPROJ_FILE)
             Log.d(TAG, "Model path: $modelPath")
+            Log.d(TAG, "MMProj path: $mmprojPath")
             if (nativePtr == 0L && nativeIsLoaded()) {
-                nativePtr = nativeInitEngine(modelPath)
+                nativePtr = nativeInitEngine(modelPath, mmprojPath)
                 if (nativePtr != 0L) {
                     Log.d(TAG, "Native engine init OK: ptr=$nativePtr")
                     val tpl = nativeGetChatTemplate(nativePtr)
@@ -102,12 +115,49 @@ class LlamaEngineImpl @Inject constructor(
         return mock.generateResponse(userMessage, systemPrompt)
     }
 
+    override fun generateResponseWithImage(
+        userMessage: String,
+        systemPrompt: String,
+        rgbImage: ByteArray,
+        width: Int,
+        height: Int,
+    ): Flow<String> {
+        if (nativePtr != 0L && isInitialized) {
+            return nativeGenerateFlowWithImage(userMessage, systemPrompt, rgbImage, width, height)
+                .flowOn(Dispatchers.IO)
+        }
+        return mock.generateResponse(userMessage, systemPrompt)
+    }
+
     private fun nativeGenerateFlow(userMessage: String, systemPrompt: String): Flow<String> = callbackFlow {
         val template = if (nativePtr != 0L) nativeGetChatTemplate(nativePtr) else ""
         val prompt = if (template.isNotEmpty()) applyTemplate(template, systemPrompt, userMessage)
                      else "$systemPrompt\n\nUser: $userMessage\nAssistant:"
         tokenQueue.clear(); callbackDone = false; callbackError = null; accumulated.setLength(0)
         if (nativePtr != 0L) nativeGenerateStream(nativePtr, prompt, MAX_TOKENS, this@LlamaEngineImpl)
+        while (!callbackDone && !isClosedForSend) {
+            val tok = tokenQueue.poll()
+            if (tok != null) { accumulated.append(tok); trySend(tok) }
+            else delay(POLL_MS)
+        }
+        callbackError?.let { close(IllegalStateException(it)) }
+        awaitClose { if (nativePtr != 0L && !callbackDone) nativeAbort(nativePtr) }
+    }
+
+    private fun nativeGenerateFlowWithImage(
+        userMessage: String,
+        systemPrompt: String,
+        rgbImage: ByteArray,
+        width: Int,
+        height: Int,
+    ): Flow<String> = callbackFlow {
+        val template = if (nativePtr != 0L) nativeGetChatTemplate(nativePtr) else ""
+        val promptText = if (template.isNotEmpty()) applyTemplate(template, systemPrompt, userMessage)
+        else "$systemPrompt\n\nUser: $userMessage\nAssistant:"
+        val prompt = "<__media__>\n$promptText"
+
+        tokenQueue.clear(); callbackDone = false; callbackError = null; accumulated.setLength(0)
+        if (nativePtr != 0L) nativeGenerateStreamWithMedia(nativePtr, prompt, rgbImage, width, height, MAX_TOKENS, this@LlamaEngineImpl)
         while (!callbackDone && !isClosedForSend) {
             val tok = tokenQueue.poll()
             if (tok != null) { accumulated.append(tok); trySend(tok) }
@@ -146,9 +196,10 @@ class LlamaEngineImpl @Inject constructor(
     private fun nativeIsLoaded(): Boolean = try { System.loadLibrary("llama_jni"); true } catch (e: UnsatisfiedLinkError) { false }
 
     // JNI (implemented in llama_jni.cpp)
-    private external fun nativeInitEngine(modelPath: String): Long
+    private external fun nativeInitEngine(modelPath: String, mmprojPath: String): Long
     private external fun nativeFree(ptr: Long)
     private external fun nativeGetChatTemplate(ptr: Long): String
     private external fun nativeGenerateStream(ptr: Long, prompt: String, maxTokens: Int, callback: TokenCallback)
+    private external fun nativeGenerateStreamWithMedia(ptr: Long, prompt: String, rgb: ByteArray, width: Int, height: Int, maxTokens: Int, callback: TokenCallback)
     private external fun nativeAbort(ptr: Long)
 }

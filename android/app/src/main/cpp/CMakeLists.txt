@@ -54,11 +54,41 @@ add_subdirectory(${WHisper_DIR} whisper_cmake_build EXCLUDE_FROM_ALL)
 # ── llama_jni shared library ──────────────────────────────────
 add_library(llama_jni SHARED
     llama_jni.cpp
+    ${LLAMA_DIR}/tools/mtmd/clip.cpp
+    ${LLAMA_DIR}/tools/mtmd/mtmd.cpp
+    ${LLAMA_DIR}/tools/mtmd/mtmd-image.cpp
+    ${LLAMA_DIR}/tools/mtmd/mtmd-audio.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/cogvlm.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/conformer.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/deepseekocr.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/dotsocr.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/glm4v.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/hunyuanocr.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/internvl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/gemma4v.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/kimik25.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/kimivl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/llama4.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/llava.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/mobilenetv5.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/minicpmv.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/nemotron-v2-vl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/paddleocr.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/pixtral.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/qwen2vl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/qwen3vl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/siglip.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/step3vl.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/whisper-enc.cpp
+    ${LLAMA_DIR}/tools/mtmd/models/youtuvl.cpp
 )
 target_include_directories(llama_jni PRIVATE
     ${LLAMA_DIR}/include
     ${LLAMA_DIR}/src
     ${LLAMA_DIR}/common
+    ${LLAMA_DIR}/tools/mtmd
+    ${LLAMA_DIR}/tools/mtmd/models
+    ${LLAMA_DIR}/vendor/stb
 )
 target_link_libraries(llama_jni
     llama

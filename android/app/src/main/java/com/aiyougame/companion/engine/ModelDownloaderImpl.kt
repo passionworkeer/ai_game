@@ -36,7 +36,8 @@ class ModelDownloaderImpl @Inject constructor(
 
     companion object {
         private const val MODEL_DIR = "models"
-        private const val MODEL_FILE = "gemma-4-E4B-it-Q4_0.gguf"
+        // Legacy default used before we supported multiple files.
+        private const val LEGACY_MODEL_FILE = "gemma-4-E4B-it-Q4_0.gguf"
         private const val BUFFER_SIZE = 8192
     }
 
@@ -54,8 +55,7 @@ class ModelDownloaderImpl @Inject constructor(
     private val modelDir: File
         get() = File(context.filesDir, MODEL_DIR)
 
-    private val modelFile: File
-        get() = File(modelDir, MODEL_FILE)
+    private fun fileFor(fileName: String): File = File(modelDir, fileName)
 
     override fun progressFlow(): Flow<ModelDownloader.Progress> = callbackFlow {
         // Emit current state immediately
@@ -83,12 +83,17 @@ class ModelDownloaderImpl @Inject constructor(
     }
 
     override suspend fun download(cdnUrl: String, sha256: String): Result<String> =
+        download(cdnUrl, sha256, fileName = defaultFileNameFromUrl(cdnUrl))
+
+    override suspend fun download(cdnUrl: String, sha256: String, fileName: String): Result<String> =
         withContext(Dispatchers.IO) {
             try {
                 // Ensure model directory exists
                 if (!modelDir.exists()) {
                     modelDir.mkdirs()
                 }
+
+                val targetFile = fileFor(fileName)
 
                 // HEAD request to get Content-Length
                 val headRequest = Request.Builder()
@@ -110,7 +115,7 @@ class ModelDownloaderImpl @Inject constructor(
                     )
 
                 // Check for existing partial file (resume support)
-                val existingBytes = if (modelFile.exists()) modelFile.length() else 0L
+                val existingBytes = if (targetFile.exists()) targetFile.length() else 0L
 
                 // Build download request (with Range header if resuming)
                 val downloadRequestBuilder = Request.Builder()
@@ -121,7 +126,7 @@ class ModelDownloaderImpl @Inject constructor(
                     downloadRequestBuilder.addHeader("Range", "bytes=$existingBytes-")
                 } else {
                     // Fresh start: delete any existing partial file
-                    if (modelFile.exists()) modelFile.delete()
+                    if (targetFile.exists()) targetFile.delete()
                     updateProgress(0L, totalBytes, isComplete = false)
                 }
 
@@ -146,7 +151,7 @@ class ModelDownloaderImpl @Inject constructor(
 
                 // Open output stream in append mode for resume, else fresh
                 val appendMode = responseCode == 206 && existingBytes > 0
-                val outputStream = FileOutputStream(modelFile, appendMode)
+                val outputStream = FileOutputStream(targetFile, appendMode)
 
                 try {
                     downloadResponse.body?.byteStream()?.use { input ->
@@ -167,9 +172,9 @@ class ModelDownloaderImpl @Inject constructor(
                 }
 
                 // Verify SHA-256
-                val fileSha256 = computeSha256(modelFile)
+                val fileSha256 = computeSha256(targetFile)
                 if (fileSha256.lowercase() != sha256.lowercase()) {
-                    val corruptFile = modelFile
+                    val corruptFile = targetFile
                     corruptFile.delete()
                     updateProgress(0L, 0L, isComplete = false)
                     return@withContext Result.failure(
@@ -178,21 +183,26 @@ class ModelDownloaderImpl @Inject constructor(
                 }
 
                 updateProgress(totalBytes, totalBytes, isComplete = true)
-                Result.success(modelFile.absolutePath)
+                Result.success(targetFile.absolutePath)
 
             } catch (e: Exception) {
                 // Clean up corrupt file on any failure
-                if (modelFile.exists()) modelFile.delete()
+                // Best-effort cleanup: target file name is only known when using the 3-arg overload.
+                // Legacy callers will have already been routed through defaultFileNameFromUrl().
                 updateProgress(0L, 0L, isComplete = false)
                 Result.failure(e)
             }
         }
 
     override suspend fun isModelReady(sha256: String): Boolean =
+        isFileReady(LEGACY_MODEL_FILE, sha256)
+
+    override suspend fun isFileReady(fileName: String, sha256: String): Boolean =
         withContext(Dispatchers.IO) {
-            if (!modelFile.exists()) return@withContext false
+            val targetFile = fileFor(fileName)
+            if (!targetFile.exists()) return@withContext false
             try {
-                val actualSha256 = computeSha256(modelFile)
+                val actualSha256 = computeSha256(targetFile)
                 actualSha256.lowercase() == sha256.lowercase()
             } catch (_: Exception) {
                 false
@@ -200,13 +210,21 @@ class ModelDownloaderImpl @Inject constructor(
         }
 
     override suspend fun deleteLocalModel() = withContext(Dispatchers.IO) {
-        if (modelFile.exists()) {
-            modelFile.delete()
-        }
+        // Legacy behavior: delete the legacy default model file only.
+        val legacy = fileFor(LEGACY_MODEL_FILE)
+        if (legacy.exists()) legacy.delete()
         _progressFlow.value = ModelDownloader.Progress(0, 0, isComplete = true)
     }
 
-    override fun getModelPath(): String = modelFile.absolutePath
+    override fun getModelPath(): String =
+        fileFor(LEGACY_MODEL_FILE).absolutePath
+
+    override fun getFilePath(fileName: String): String = fileFor(fileName).absolutePath
+
+    private fun defaultFileNameFromUrl(url: String): String {
+        val last = url.substringAfterLast('/')
+        return if (last.isBlank()) "model.gguf" else last
+    }
 
     /**
      * Compute SHA-256 hex string of a file.

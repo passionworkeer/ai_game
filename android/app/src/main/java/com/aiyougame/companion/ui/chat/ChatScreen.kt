@@ -1,6 +1,8 @@
 package com.aiyougame.companion.ui.chat
 
 import android.Manifest
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,7 +35,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.aiyougame.companion.speech.VoiceRecognitionManager
 import com.aiyougame.companion.ui.chat.ChatMessageUi
 import com.aiyougame.companion.ui.chat.ChatViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,9 +52,11 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var voiceState by remember { mutableStateOf<VoiceRecognitionManager.State>(VoiceRecognitionManager.State.Idle) }
     var showVoicePermissionDenied by remember { mutableStateOf(false) }
+    var showImageError by remember { mutableStateOf<String?>(null) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -77,6 +84,22 @@ fun ChatScreen(
             voiceManager.startRecording()
         } else {
             showVoicePermissionDenied = true
+        }
+    }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            try {
+                val (rgb, w, h) = decodeToRgb(context, uri, 512)
+                viewModel.sendImageMessage(rgb, w, h, caption = inputText.ifBlank { "请描述这张图片" })
+                inputText = ""
+            } catch (e: Exception) {
+                showImageError = e.message ?: "图片处理失败"
+            }
         }
     }
 
@@ -146,6 +169,7 @@ fun ChatScreen(
                         coroutineScope.launch { listState.animateScrollToItem(uiState.messages.size) }
                     }
                 },
+                onPickImage = { imagePickerLauncher.launch("image/*") },
                 voiceState = voiceState,
                 onVoiceClick = {
                     when (voiceState) {
@@ -203,6 +227,17 @@ fun ChatScreen(
                 TextButton(onClick = { showVoicePermissionDenied = false }) {
                     Text("确定")
                 }
+            }
+        )
+    }
+
+    showImageError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { showImageError = null },
+            title = { Text("图片发送失败") },
+            text = { Text(msg) },
+            confirmButton = {
+                TextButton(onClick = { showImageError = null }) { Text("确定") }
             }
         )
     }
@@ -305,6 +340,7 @@ fun ChatInputBar(
     inputText: String,
     onInputChanged: (String) -> Unit,
     onSend: () -> Unit,
+    onPickImage: () -> Unit,
     voiceState: VoiceRecognitionManager.State,
     onVoiceClick: () -> Unit,
     onVoiceCancel: () -> Unit,
@@ -368,6 +404,16 @@ fun ChatInputBar(
 
             Spacer(modifier = Modifier.width(8.dp))
 
+            // Image button
+            IconButton(
+                onClick = onPickImage,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Text("图", color = Color(0xFF757575), fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
             // Voice button
             if (isRecording || isRecognizing) {
                 IconButton(
@@ -424,3 +470,40 @@ fun ChatInputBar(
         }
     }
 }
+
+private suspend fun decodeToRgb(context: android.content.Context, uri: Uri, maxSide: Int): Triple<ByteArray, Int, Int> =
+    withContext(Dispatchers.IO) {
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw IllegalStateException("无法读取图片")
+
+        val opts0 = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts0)
+        val srcW = opts0.outWidth
+        val srcH = opts0.outHeight
+        if (srcW <= 0 || srcH <= 0) throw IllegalStateException("无效图片尺寸")
+
+        val scale = maxOf(srcW, srcH).toFloat() / maxSide.toFloat()
+        val sample = if (scale <= 1f) 1 else scale.toInt().coerceAtLeast(1)
+
+        val opts = BitmapFactory.Options().apply {
+            inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+            inSampleSize = sample
+        }
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+            ?: throw IllegalStateException("图片解码失败")
+
+        val w = bmp.width
+        val h = bmp.height
+        val pixels = IntArray(w * h)
+        bmp.getPixels(pixels, 0, w, 0, 0, w, h)
+        bmp.recycle()
+
+        val rgb = ByteArray(w * h * 3)
+        var di = 0
+        for (p in pixels) {
+            rgb[di++] = ((p shr 16) and 0xFF).toByte()
+            rgb[di++] = ((p shr 8) and 0xFF).toByte()
+            rgb[di++] = (p and 0xFF).toByte()
+        }
+        Triple(rgb, w, h)
+    }
