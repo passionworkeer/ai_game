@@ -20,6 +20,27 @@ if not exist "%ANDROID_NDK_HOME%" (
 
 echo [INFO] ANDROID_NDK_HOME=%ANDROID_NDK_HOME%
 echo [INFO] Building llama.cpp + whisper.cpp JNI libraries...
+
+::: Check Java version (Android Gradle Plugin requires Java 17+)
+set JAVA_MAJOR=
+set JAVA_VERSION=
+for /f "tokens=3 delims= " %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do set JAVA_VERSION=%%v
+if defined JAVA_VERSION (
+    set JAVA_VERSION=%JAVA_VERSION:"=%
+    for /f "tokens=1 delims=." %%m in ("%JAVA_VERSION%") do set JAVA_MAJOR=%%m
+)
+if not defined JAVA_MAJOR (
+    echo ERROR: Java not found. Android Gradle Plugin requires Java 17+.
+    echo Please install JDK 17 (or newer) and set JAVA_HOME accordingly.
+    pause
+    exit /b 1
+)
+if %JAVA_MAJOR% LSS 17 (
+    echo ERROR: Java 17+ is required, but detected Java %JAVA_VERSION%.
+    echo Fix: install JDK 17 and set JAVA_HOME to it (or set org.gradle.java.home).
+    pause
+    exit /b 1
+)
 echo.
 
 :: Clean any stale build artifacts
