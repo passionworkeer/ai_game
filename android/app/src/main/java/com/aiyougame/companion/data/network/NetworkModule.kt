@@ -83,4 +83,21 @@ object NetworkModule {
             })
             .build()
     }
+
+    /**
+     * OkHttpClient for Ollama HTTP API.
+     * Longer read timeout for model inference (streaming can be slow).
+     * No auth — Ollama runs on localhost/LAN without auth by default.
+     */
+    @Provides
+    @Singleton
+    @Named("ollama")
+    fun provideOllamaOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(300, TimeUnit.SECONDS)   // inference may take a while
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
+    }
 }

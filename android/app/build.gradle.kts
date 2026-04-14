@@ -69,6 +69,28 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    // ── Ollama engine (OllamaEngineImpl) ─────────────────────────
+    // Set to true to use Ollama HTTP API instead of native JNI.
+    // When enabled, configure OLLAMA_URL and OLLAMA_MODEL below.
+    val OLLAMA_ENABLED = true
+
+    if (OLLAMA_ENABLED) {
+        // Android emulator → host Ollama: 10.0.2.2 is emulator's alias for host localhost
+        // Real device on same LAN → replace with your PC's local IP (e.g. 192.168.1.x)
+        defaultConfig {
+            buildConfigField("String", "OLLAMA_URL", "\"http://10.0.2.2:11434\"")
+            buildConfigField("String", "OLLAMA_MODEL", "\"gemma-4-e2b-uncensored\"")
+            buildConfigField("Boolean", "OLLAMA_ENABLED", "true")
+        }
+    } else {
+        defaultConfig {
+            buildConfigField("String", "OLLAMA_URL", "\"http://10.0.2.2:11434\"")
+            buildConfigField("String", "OLLAMA_MODEL", "\"gemma-4-e2b-uncensored\"")
+            buildConfigField("Boolean", "OLLAMA_ENABLED", "false")
+        }
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"

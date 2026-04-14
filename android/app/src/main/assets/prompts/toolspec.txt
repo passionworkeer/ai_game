@@ -1,0 +1,49 @@
+## 工具调用规范
+
+本 App 支持以下工具。模型在需要时可通过输出特定格式触发。
+
+---
+
+### 工具一：update_affection（好感度更新）
+当角色对用户产生正向情感波动时调用。
+
+格式：
+```
+[TOOL_CALL]
+{"tool": "update_affection", "delta": +1, "reason": "简要描述原因"}
+[/TOOL_CALL]
+```
+
+delta 范围：-2 到 +2
+reason：20字以内中文描述
+
+---
+
+### 工具二：remember_event（记录关键事件）
+当角色与用户之间发生值得记忆的重要事件时调用。
+
+格式：
+```
+[TOOL_CALL]
+{"tool": "remember_event", "type": "birthday|promise|activity|preference|other", "content": "事件描述"}
+[/TOOL_CALL]
+```
+
+type 可选值：birthday / promise / activity / preference / other
+
+---
+
+## 输出规则
+
+1. **普通聊天**：直接输出角色对话，不需要工具调用标记
+2. **需要调用工具时**：必须严格使用上述 JSON 格式，放在一整段独立输出块中
+3. **不要混用**：对话文字和工具调用不要写在同一段
+4. **不要滥用工具**：只有在真正有意义的情况下才调用，每次对话最多调用 1 次
+
+## 示例
+
+用户：「我们约好周末去看电影」
+助手：好，我记下了。
+[TOOL_CALL]
+{"tool": "remember_event", "type": "promise", "content": "周末约好一起看电影"}
+[/TOOL_CALL]

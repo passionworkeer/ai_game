@@ -18,12 +18,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object LlamaModule {
 
-    // LlamaEngineImpl instances are managed by LlamaEngineManager (not Hilt-provided as singleton).
-    // LlamaEngineManager uses Provider<LlamaEngineImpl> to create new instances.
-
-    @Provides
-    @Singleton
-    fun provideLlamaEngine(impl: LlamaEngineImpl): LlamaEngine = impl
+    // Both engine implementations are Hilt singletons.
+    // LlamaEngineManager picks which one to use based on BuildConfig.OLLAMA_ENABLED.
+    // Each engine manages per-character state internally.
 
     @Provides
     @Singleton
