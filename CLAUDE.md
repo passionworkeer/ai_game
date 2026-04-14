@@ -6,7 +6,7 @@
 
 国内首款端侧离线 AI 乙女游戏陪伴 App（Gemma 4 本地推理 + OpenClaw PC 联动）。
 
-**当前阶段**：Phase 2 ✅ 完成（2026-04-11 完成）
+**当前阶段**：Phase 3 🔄 进行中（2026-04-14）
 
 **团队**：单人（你），全栈。
 
@@ -18,6 +18,7 @@
 Phase 0 ✅ 文档规划
 Phase 1 ✅ 核心聊天 Demo（232 tests pass，BUILD SUCCESSFUL）
 Phase 2 ✅ 完整产品（BUILD SUCCESSFUL + 全量编译）
+Phase 3 🔄 真机/Ollama 验证
 ```
 
 | 模块 | 状态 | 完成时间 |
@@ -40,6 +41,8 @@ Phase 2 ✅ 完整产品（BUILD SUCCESSFUL + 全量编译）
 | **Phase 2 P1-B4 运营后台** | ✅ | 2026-04-10 |
 | **Phase 2 P1-A1 AES-256 DRM Android** | ✅ | 2026-04-11 |
 | **Phase 2 P1-A2 sqlite-vec 向量记忆** | ✅ | 2026-04-11 |
+| **Phase 3 Ollama HTTP 引擎** | ✅ | 2026-04-14 |
+| **Phase 3 Prompt 资产补全** | ✅ | 2026-04-14 |
 
 ---
 
@@ -81,6 +84,7 @@ Phase 2 ✅ 完整产品（BUILD SUCCESSFUL + 全量编译）
 | D5 | Phase 1 使用 llama.cpp CMake 构建 | 原 AAR 方案不存在（GitHub 核实），改用 `nerve-sparks/iris_android` CMake 方案（ERR-08）|
 | D7 | Phase 1 GGUF 不打入 APK | App 首次启动从 CDN 下载，存 `files/models/`（v2.3 修正）|
 | D8 | Phase 1 内容安全必须接入第三方 | 占位符正则词库禁止上架（ERR-10）|
+| D9 | Phase 3 Ollama HTTP 引擎替代 JNI | 绕过 NDK 编译，真机验证阶段用 Ollama HTTP API。通过 `OLLAMA_ENABLED` BuildConfig 切换（true=Ollama，false=Native JNI）|
 | D6 | Phase 0 代码全清，文档先行 | 源码从零重建 |
 
 ---
@@ -153,8 +157,8 @@ ai_game/
 │   ├── di/               # ✅ Hilt DI 模块（A-6 完成）
 │   ├── memory/            # ✅ Room DB 骨架就绪（A-16 完成）；ProfileExtractor 昵称提取（A-17 部分）
 │   ├── domain/            # ⬜ 待开发（规则引擎 ProfileExtractor）
-│   ├── llm/               # ⬜ 待开发（LlamaScheduler）
-│   ├── engine/            # ⬜ 待开发（LlamaEngine）
+│   ├── llm/               # ✅ LlamaEngineImpl（Native JNI）+ OllamaEngineImpl（HTTP）
+│   ├── engine/            # ✅ ModelDownloader + ChatTemplateLoader
 │   └── ui/                # ✅ UI + ViewModel（A-7~A-15 完成）
 │   └── build.gradle.kts
 │
@@ -193,7 +197,7 @@ ai_game/
 - ✅ E2E 文档就绪（E-2 隐私合规 + E-3 性能基准）
 - ✅ E2E 前后端联调（Jest 69 passed + curl 验证通过，mitmproxy 抓包待手动）
 
-**下一步：真机演示（手机跑 Gemma 4）**
+**下一步：真机演示（手机跑 Gemma 4 + Ollama HTTP 验证）**
 1. 运行 `install-ndk.bat` 安装 Android NDK（一次性）
 2. 运行 `phone-demo-setup.bat` 一键编译 + 打包
 3. 运行 `serve-model.bat` 启动本机模型服务器
@@ -208,9 +212,9 @@ ai_game/
 
 ---
 
-## 真机演示（手机跑 Gemma 4 本地推理）
+## 真机演示（手机跑 Gemma 4 + Ollama HTTP 验证）
 
-详见 `PHONE_DEMO_GUIDE.md`。快速入口：
+详见 `PHONE_DEMO_GUIDE.md`（**方式 C：Ollama HTTP 引擎推荐，无需 NDK**）。快速入口：
 
 ```bash
 # 一键编译 + 打包 + 推送（需先装 NDK）

@@ -344,3 +344,59 @@ ui/ChatViewModel.kt ← StateFlow
 ```
 
 **禁止反向依赖**：ui 层不能直接调用 engine 层，必须通过 llm/agent 中转。
+
+---
+
+## 九、Phase 3：Ollama HTTP 引擎接入（2026-04-14）
+
+**目标**：绕过 NDK 编译，在真机验证阶段直接用 Windows Ollama。
+
+### 架构
+
+```
+Android App
+    ↓ HTTP POST /api/chat
+OllamaEngineImpl.kt  ──→  Windows Ollama (localhost:11434)
+                              ↓
+                         gemma-4-e2b-uncensored
+```
+
+### 切换方式
+
+编辑 `android/app/build.gradle.kts`：
+
+```kotlin
+val OLLAMA_ENABLED = true   // true = Ollama HTTP，false = Native JNI
+```
+
+| 配置项 | 说明 |
+|--------|------|
+| `OLLAMA_URL` | 模拟器 = `http://10.0.2.2:11434`，真机 = `http://192.168.x.x:11434` |
+| `OLLAMA_MODEL` | `gemma-4-e2b-uncensored` |
+
+### 文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `llm/OllamaEngineImpl.kt` | HTTP streaming engine，SSE 解析，逐字 emit |
+| `llm/LlamaEngineManager.kt` | 引擎选择（OLLAMA_ENABLED BuildConfig） |
+| `data/network/NetworkModule.kt` | `@Named("ollama")` OkHttpClient（300s 超时） |
+| `build.gradle.kts` | BuildConfig OLLAMA_URL / MODEL / ENABLED |
+| `assets/prompts/default.txt` | 通用角色兜底 prompt |
+| `assets/prompts/toolspec.txt` | 工具调用 JSON 规范 |
+| `test_app.bat` | 一键：检查环境 + 启动模拟器 + 安装 APK |
+| `check_deps.bat` | 检查 Ollama / APK / SDK 状态 |
+
+### Prompt 实测验证
+
+```
+用户：今天过得怎么样？
+顾晨：好。你呢？
+
+用户：上了一整天班好累
+顾晨：累了？你吃饭了吗？
+
+用户：你是不是想我了？
+顾晨：「想你？」我看着你，微微侧头。「你吃饭了吗？」
+```
+

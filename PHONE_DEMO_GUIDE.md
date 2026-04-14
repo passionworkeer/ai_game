@@ -1,6 +1,6 @@
 # 真机演示指南 — Gemma 4 本地推理
 
-> Phase 2 完成。手机跑 Gemma 4 Q4_0 推理，无需云端。
+> Phase 2 ✅ 完成 | Phase 3 🔄 进行中：支持 Ollama HTTP 引擎真机验证
 
 ## 准备工作（只需做一次）
 
@@ -50,6 +50,42 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ---
+
+### 方式 C：Ollama HTTP 引擎（无需 NDK，推荐开发验证）
+
+无需编译原生库，直接用 Windows Ollama 通过 HTTP 调用模型。
+**优势**：绕过 ARM/x86 架构限制，Windows 直接验证 Prompt 人设效果
+
+#### Step 1: 确认 Ollama 运行
+```powershell
+# 启动 Ollama（如果还没运行）
+ollama serve
+
+# 确认模型已加载
+curl http://127.0.0.1:11434/api/tags
+```
+确保模型 `gemma-4-e2b-uncensored` 在列表中。
+
+#### Step 2: 配置 App 使用 Ollama
+编辑 `android/app/build.gradle.kts`：
+```kotlin
+val OLLAMA_ENABLED = true  // ← 改成 true
+// URL 配置（模拟器用 10.0.2.2，真机用电脑局域网 IP）
+buildConfigField("String", "OLLAMA_URL", "http://10.0.2.2:11434")
+// 真机时改成: "http://192.168.x.x:11434"
+buildConfigField("String", "OLLAMA_MODEL", "gemma-4-e2b-uncensored")
+```
+
+#### Step 3: 编译 + 安装
+```bash
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### Step 4: 一键检查环境
+双击 `check_deps.bat` 检查所有依赖是否就绪。
+
 
 ## 模型文件：本地服务器方案
 
@@ -138,6 +174,8 @@ adb push gemma-4-E4B-it-Q4_0.gguf /sdcard/Download/
 
 - [ ] 手机开启了 USB 调试
 - [ ] 运行 `phone-demo-setup.bat` 成功
+- [ ] Ollama 已启动（`ollama serve`）
+- [ ] Ollama 模型就绪（`curl http://127.0.0.1:11434/api/tags`）
 - [ ] `serve-model.bat` 开着
 - [ ] APK 的 CDN_URL 改成电脑IP
 - [ ] 手机和电脑在同一WiFi

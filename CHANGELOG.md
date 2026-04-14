@@ -4,6 +4,53 @@
 
 ---
 
+## v2.4 — Ollama HTTP 引擎接入（2026-04-14）
+
+### 新增：OllamaEngineImpl
+
+Android App 现支持通过 HTTP 调用 Windows 本地 Ollama，替代原生 JNI 推理。
+
+| 组件 | 说明 |
+|------|------|
+| `OllamaEngineImpl.kt` | HTTP /api/chat，SSE 流式解析，逐字 emit 打字机效果 |
+| `BuildConfig.OLLAMA_ENABLED` | true=Ollama，false=Native JNI，一行切换 |
+| `OLLAMA_URL` | 模拟器=`http://10.0.2.2:11434`，真机=PC 局域网 IP |
+| `OLLAMA_MODEL` | `gemma-4-e2b-uncensored` |
+
+**优势**：无需 NDK 编译，绕过 ARM/x86 架构限制，Windows 直接跑模型验证 Prompt 人设效果。
+
+### 补充缺失 assets
+
+| 文件 | 用途 |
+|------|------|
+| `assets/prompts/default.txt` | 通用角色兜底 prompt |
+| `assets/prompts/toolspec.txt` | 工具调用 JSON 规范（update_affection / remember_event）|
+
+### 新增调试脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `test_app.bat` | 一键：检查环境 + 启动模拟器 + 安装 APK |
+| `check_deps.bat` | 检查 Ollama / APK / SDK / 设备连接状态 |
+| `start_emulator.ps1` | PowerShell 启动模拟器（兼容 Windows 环境变量）|
+
+### Prompt 验证结果（2026-04-14）
+
+模型 `gemma-4-e2b-uncensored` 通过 Ollama 实测通过：
+
+```
+用户：今天过得怎么样？
+顾晨：好。你呢？
+
+用户：上了一整天班好累
+顾晨：累了？你吃饭了吗？
+
+用户：你是不是想我了？
+顾晨：「想你？」我看着你，微微侧头。「你吃饭了吗？」
+```
+
+---
+
 ## v2.3 — 模型路径修正（2026-04-09）
 
 ### GGUF 模型不能打入 APK（关键修正）
