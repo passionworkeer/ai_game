@@ -42,3 +42,10 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.bak
+
+# 私有业务资料与本地协作产物
+archive/business/
+AI乙游_工程PRD_V2.1.docx
+AI乙游陪伴_融资计划书.docx
+Phase2/
+GIT_SUMMARY.md

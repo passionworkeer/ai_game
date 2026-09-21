@@ -7,13 +7,9 @@
 
 ## 目录结构
 
-```
-archive/
-├── scripts/        # Phase 2 NDK 编译脚本（已停用）
-├── gguf/           # GGUF 模型文件（Ollama 有独立模型库）
-├── docs/           # Phase 2 任务文档
-└── business/       # 业务文档（PRD / 融资计划书）
-```
+- `scripts/`：Phase 2 NDK 编译脚本（已停用）。
+- `docs/`：Phase 2 任务文档。
+- `gguf/`：本地模型存放位置，不纳入 Git。
 
 ---
 
@@ -53,15 +49,6 @@ ollama pull gemma2:2b
 | 文件 | 说明 |
 |------|------|
 | `Phase2_TASKS.md` | Phase 2 全量任务追踪（M1~M4 全部完成），已归入 CLAUDE.md 状态表 |
-
----
-
-## business/ — 业务文档
-
-| 文件 | 说明 |
-|------|------|
-| `AI乙游_工程PRD_V2.1.docx` | 工程 PRD V2.1（已被 docs/ 下各文档替代） |
-| `AI乙游陪伴_融资计划书.docx` | 融资计划书草稿 |
 
 ---
 
